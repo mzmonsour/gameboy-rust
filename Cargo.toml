@@ -3,3 +3,9 @@
 name = "gameboy-rust"
 version = "0.0.1"
 authors = ["Matt Monsour <mzmonsour@gmail.com>"]
+
+[dependencies.glutin]
+git = "https://github.com/tomaka/glutin"
+
+[dependencies.gfx]
+git = "http://github.com/gfx-rs/gfx-rs"
