@@ -1,0 +1,5 @@
+[package]
+
+name = "gameboy-rust"
+version = "0.0.1"
+authors = ["Matt Monsour <mzmonsour@gmail.com>"]
