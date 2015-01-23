@@ -12,6 +12,10 @@ impl AddressSpace {
         self.data[addr as usize]
     }
 
+    fn read_slice(&self, addr: u16, bytes: u16) -> &[u8] {
+        self.data.slice(addr as usize, (addr + bytes) as usize)
+    }
+
     fn write(&mut self, addr: u16, data: u8) {
         self.data[addr as usize] = data;
     }
@@ -35,6 +39,32 @@ impl<'a> Instr<'a> {
 
     fn param(&self, i: usize) -> u8 {
         self.data.expect("Instruction type does not carry parameters")[i]
+    }
+
+}
+
+struct InstrParser<'a> {
+    rom: &'a AddressSpace,
+    pc: u16,
+}
+
+impl<'a> InstrParser<'a> {
+
+    fn new(rom: &AddressSpace) -> InstrParser {
+        InstrParser { rom: rom, pc: 0x100 }
+    }
+
+    fn next_instr(&mut self) -> Instr {
+        let opcode = self.rom.read(self.pc);
+        self.pc += 1;
+        Instr {
+            opcode: opcode,
+            data: None,
+        }
+    }
+
+    fn set_pc(&mut self, pc: u16) {
+        self.pc = pc;
     }
 
 }
