@@ -43,31 +43,6 @@ impl<'a> Instr<'a> {
 
 }
 
-struct InstrParser {
-    pc: u16,
-}
-
-impl InstrParser {
-
-    fn new() -> InstrParser {
-        InstrParser { pc: 0x100 }
-    }
-
-    fn next_instr(&mut self, rom: &AddressSpace) -> Instr {
-        let opcode = rom.read(self.pc);
-        self.pc += 1;
-        Instr {
-            opcode: opcode,
-            data: None,
-        }
-    }
-
-    fn set_pc(&mut self, pc: u16) {
-        self.pc = pc;
-    }
-
-}
-
 enum RegFlag {
     Zero,
     Subtract,
@@ -89,6 +64,7 @@ enum Register {
     DE,
     HL,
     SP,
+    PC,
     Flag,
 }
 
@@ -102,6 +78,7 @@ struct RegData {
     h: u8,
     l: u8,
     sp: u16,
+    pc: u16,
     flag: u8,
 }
 
@@ -118,6 +95,7 @@ impl RegData {
             h: 0,
             l: 0,
             sp: 0xFFFE,
+            pc: 0x100,
             flag: 0,
         }
     }
@@ -144,6 +122,7 @@ impl RegData {
             Register::DE => (self.d as u16) << 8 | self.e as u16,
             Register::HL => (self.h as u16) << 8 | self.l as u16,
             Register::SP => self.sp,
+            Register::PC => self.pc,
             _ => panic!("Register not available for 16-bit read"),
         }
     }
@@ -182,6 +161,7 @@ impl RegData {
                 self.l = lo;
             },
             Register::SP => self.sp = data,
+            Register::PC => self.pc = data,
             _ => panic!("Register not available for 16-bit write"),
         }
     }
@@ -200,6 +180,12 @@ impl RegData {
         }
     }
 
+    fn advance_pc(&mut self) -> u16 {
+        let pc = self.pc;
+        self.pc += 1;
+        pc
+    }
+
 }
 
 static GB_FREQUENCY: u32 = 4194304;
@@ -207,7 +193,6 @@ static GB_FREQUENCY: u32 = 4194304;
 struct Cpu {
     reg: RegData,
     ram: AddressSpace,
-    instr_parser: InstrParser,
     freq: u32,
     clock: u64,
     cycle_block: u32,
@@ -223,10 +208,17 @@ impl Cpu {
         Cpu {
             reg: RegData::new(),
             ram: AddressSpace::new(),
-            instr_parser: InstrParser::new(),
             freq: freq,
             clock: 0,
             cycle_block: 0,
+        }
+    }
+
+    fn next_instr(&mut self) -> Instr {
+        let opcode = self.ram.read(self.reg.advance_pc());
+        Instr {
+            opcode: opcode,
+            data: None,
         }
     }
 
@@ -235,7 +227,7 @@ impl Cpu {
         if self.cycle_block > 0 {
             self.cycle_block -= 1;
         } else {
-            let instr = self.instr_parser.next_instr(&self.ram);
+            let instr = self.next_instr();
             match instr.opcode() {
                 _ => panic!("Instruction not implemented!"),
             }
