@@ -69,6 +69,140 @@ impl<'a> InstrParser<'a> {
 
 }
 
+enum RegFlag {
+    Zero,
+    Subtract,
+    HalfCarry,
+    Carry,
+}
+
+enum Register {
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    H,
+    L,
+    AF,
+    BC,
+    DE,
+    HL,
+    SP,
+    Flag,
+}
+
+struct RegData {
+    a: u8,
+    b: u8,
+    c: u8,
+    d: u8,
+    e: u8,
+    f: u8,
+    h: u8,
+    l: u8,
+    sp: u16,
+    flag: u8,
+}
+
+impl RegData {
+
+    fn new() -> RegData {
+        RegData {
+            a: 0,
+            b: 0,
+            c: 0,
+            d: 0,
+            e: 0,
+            f: 0,
+            h: 0,
+            l: 0,
+            sp: 0xFFFE,
+            flag: 0,
+        }
+    }
+
+    fn read(&self, reg: Register) -> u8 {
+        match reg {
+            Register::A => self.a,
+            Register::B => self.b,
+            Register::C => self.c,
+            Register::D => self.d,
+            Register::E => self.e,
+            Register::F => self.f,
+            Register::H => self.h,
+            Register::L => self.l,
+            Register::Flag => self.flag,
+            _ => panic!("Register not available for 8-bit read"),
+        }
+    }
+
+    fn read_u16(&self, reg: Register) -> u16 {
+        match reg {
+            Register::AF => (self.a as u16) << 8 | self.f as u16,
+            Register::BC => (self.b as u16) << 8 | self.c as u16,
+            Register::DE => (self.d as u16) << 8 | self.e as u16,
+            Register::HL => (self.h as u16) << 8 | self.l as u16,
+            Register::SP => self.sp,
+            _ => panic!("Register not available for 16-bit read"),
+        }
+    }
+
+    fn write(&mut self, reg: Register, data: u8) {
+        match reg {
+            Register::A => self.a = data,
+            Register::B => self.b = data,
+            Register::C => self.c = data,
+            Register::D => self.d = data,
+            Register::E => self.e = data,
+            Register::F => self.f = data,
+            Register::H => self.h = data,
+            Register::L => self.l = data,
+            _ => panic!("Register not available for 8-bit write"),
+        }
+    }
+
+    fn write_u16(&mut self, reg: Register, data: u16) {
+        let (hi, lo) = ((data & 0xFF00 >> 8) as u8, (data & 0xFF) as u8);
+        match reg {
+            Register::AF => {
+                self.a = hi;
+                self.f = lo;
+            },
+            Register::BC => {
+                self.b = hi;
+                self.c = lo;
+            },
+            Register::DE => {
+                self.d = hi;
+                self.c = lo;
+            },
+            Register::HL => {
+                self.h = hi;
+                self.l = lo;
+            },
+            Register::SP => self.sp = data,
+            _ => panic!("Register not available for 16-bit write"),
+        }
+    }
+
+    fn set_flag(&mut self, flag: RegFlag, on: bool) {
+        let bit = match flag {
+            RegFlag::Zero => 0x80,
+            RegFlag::Subtract => 0x40,
+            RegFlag::HalfCarry => 0x20,
+            RegFlag::Carry => 0x10,
+        };
+        if (on) {
+            self.flag |= bit;
+        } else {
+            self.flag &= bit ^ 0xFF;
+        }
+    }
+
+}
+
 fn main() {
     println!("Hello, world!");
 }
