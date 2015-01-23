@@ -43,19 +43,18 @@ impl<'a> Instr<'a> {
 
 }
 
-struct InstrParser<'a> {
-    rom: &'a AddressSpace,
+struct InstrParser {
     pc: u16,
 }
 
-impl<'a> InstrParser<'a> {
+impl InstrParser {
 
-    fn new(rom: &AddressSpace) -> InstrParser {
-        InstrParser { rom: rom, pc: 0x100 }
+    fn new() -> InstrParser {
+        InstrParser { pc: 0x100 }
     }
 
-    fn next_instr(&mut self) -> Instr {
-        let opcode = self.rom.read(self.pc);
+    fn next_instr(&mut self, rom: &AddressSpace) -> Instr {
+        let opcode = rom.read(self.pc);
         self.pc += 1;
         Instr {
             opcode: opcode,
@@ -198,6 +197,48 @@ impl RegData {
             self.flag |= bit;
         } else {
             self.flag &= bit ^ 0xFF;
+        }
+    }
+
+}
+
+static GB_FREQUENCY: u32 = 4194304;
+
+struct Cpu {
+    reg: RegData,
+    ram: AddressSpace,
+    instr_parser: InstrParser,
+    freq: u32,
+    clock: u64,
+    cycle_block: u32,
+}
+
+impl Cpu {
+
+    fn new() -> Cpu {
+        Cpu::new_with_freq(GB_FREQUENCY)
+    }
+
+    fn new_with_freq(freq: u32) -> Cpu {
+        Cpu {
+            reg: RegData::new(),
+            ram: AddressSpace::new(),
+            instr_parser: InstrParser::new(),
+            freq: freq,
+            clock: 0,
+            cycle_block: 0,
+        }
+    }
+
+    fn do_cycle(&mut self) {
+        self.clock += 1;
+        if self.cycle_block > 0 {
+            self.cycle_block -= 1;
+        } else {
+            let instr = self.instr_parser.next_instr(&self.ram);
+            match instr.opcode() {
+                _ => panic!("Instruction not implemented!"),
+            }
         }
     }
 
