@@ -176,6 +176,14 @@ impl RegData {
         }
     }
 
+    fn copy(&mut self, dst: Register, src: Register) {
+        self.write(dst, self.read(src));
+    }
+
+    fn copy_u16(&mut self, dst: Register, src: Register) {
+        self.write_u16(dst, self.read_u16(src));
+    }
+
     fn set_flag(&mut self, flag: RegFlag, on: bool) {
         let bit = match flag {
             RegFlag::Zero => 0x80,
