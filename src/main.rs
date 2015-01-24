@@ -29,8 +29,12 @@ struct Instr<'a> {
 
 impl<'a> Instr<'a> {
 
-    fn new(opcode: u8, data: Option<&[u8]>) -> Instr {
-        Instr { opcode: opcode, data: data }
+    fn parse(reg: &mut RegData, rom: &'a AddressSpace) -> Instr<'a> {
+        let opcode = rom.read(reg.advance_pc());
+        Instr {
+            opcode: opcode,
+            data: None,
+        }
     }
 
     fn opcode(&self) -> u8 {
@@ -214,20 +218,12 @@ impl Cpu {
         }
     }
 
-    fn next_instr(&mut self) -> Instr {
-        let opcode = self.ram.read(self.reg.advance_pc());
-        Instr {
-            opcode: opcode,
-            data: None,
-        }
-    }
-
     fn do_cycle(&mut self) {
         self.clock += 1;
         if self.cycle_block > 0 {
             self.cycle_block -= 1;
         } else {
-            let instr = self.next_instr();
+            let instr = Instr::parse(&mut self.reg, &self.ram);
             match instr.opcode() {
                 _ => panic!("Instruction not implemented!"),
             }
