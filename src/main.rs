@@ -25,6 +25,7 @@ impl AddressSpace {
 struct Instr<'a> {
     opcode: u8,
     data: Option<&'a [u8]>,
+    cycles: usize,
 }
 
 impl<'a> Instr<'a> {
@@ -34,11 +35,16 @@ impl<'a> Instr<'a> {
         Instr {
             opcode: opcode,
             data: None,
+            cycles: 4,
         }
     }
 
     fn opcode(&self) -> u8 {
         self.opcode
+    }
+
+    fn cycles(&self) -> usize {
+        self.cycles
     }
 
     fn param(&self, i: usize) -> u8 {
