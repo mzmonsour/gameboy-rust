@@ -22,19 +22,19 @@ impl AddressSpace {
 
 }
 
-struct Instr<'a> {
+struct Instr {
     opcode: u8,
-    data: Option<&'a [u8]>,
+    data: Vec<u8>,
     cycles: u32,
 }
 
-impl<'a> Instr<'a> {
+impl Instr {
 
-    fn parse(reg: &mut RegData, rom: &'a AddressSpace) -> Instr<'a> {
+    fn parse(reg: &mut RegData, rom: &AddressSpace) -> Instr {
         let opcode = rom.read(reg.advance_pc());
         Instr {
             opcode: opcode,
-            data: None,
+            data: Vec::new(),
             cycles: 4,
         }
     }
@@ -48,7 +48,7 @@ impl<'a> Instr<'a> {
     }
 
     fn param(&self, i: usize) -> u8 {
-        self.data.expect("Instruction type does not carry parameters")[i]
+        self.data[i]
     }
 
 }
