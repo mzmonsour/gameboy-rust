@@ -64,6 +64,7 @@ enum RegFlag {
     Carry,
 }
 
+#[derive(Copy)]
 enum Register {
     A,
     B,
