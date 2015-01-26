@@ -177,11 +177,13 @@ impl RegData {
     }
 
     fn copy(&mut self, dst: Register, src: Register) {
-        self.write(dst, self.read(src));
+        let data = self.read(src);
+        self.write(dst, data);
     }
 
     fn copy_u16(&mut self, dst: Register, src: Register) {
-        self.write_u16(dst, self.read_u16(src));
+        let data = self.read_u16(src);
+        self.write_u16(dst, data);
     }
 
     fn set_flag(&mut self, flag: RegFlag, on: bool) {
