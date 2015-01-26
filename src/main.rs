@@ -51,6 +51,10 @@ impl Instr {
         self.data[i]
     }
 
+    fn param_u16(&self, i: usize) -> u16 {
+        (self.data[i] as u16) | ((self.data[i + 1] as u16) << 8)
+    }
+
 }
 
 enum RegFlag {
