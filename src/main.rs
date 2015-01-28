@@ -68,6 +68,7 @@ impl Instr {
 
 }
 
+#[derive(Copy)]
 enum RegFlag {
     Zero,
     Subtract,
