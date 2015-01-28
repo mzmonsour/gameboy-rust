@@ -12,12 +12,23 @@ impl AddressSpace {
         self.data[addr as usize]
     }
 
+    fn read_u16(&self, addr: u16) -> u16 {
+        self.data[addr as usize] as u16 | ((self.data[addr as usize + 1] as u16) << 8)
+    }
+
     fn read_slice(&self, addr: u16, bytes: u16) -> &[u8] {
         self.data.slice(addr as usize, (addr + bytes) as usize)
     }
 
     fn write(&mut self, addr: u16, data: u8) {
         self.data[addr as usize] = data;
+    }
+
+    fn write_u16(&mut self, addr: u16, data: u16) {
+        let lo = (data & 0xFF) as u8;
+        let hi = ((data & 0xFF00) >> 8) as u8;
+        self.data[addr as usize] = lo;
+        self.data[addr as usize + 1] = hi;
     }
 
 }
