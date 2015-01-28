@@ -216,6 +216,16 @@ impl RegData {
         }
     }
 
+    fn get_flag(&self, flag: RegFlag) -> bool {
+        let bit = match flag {
+            RegFlag::Zero => 0x80,
+            RegFlag::Subtract => 0x40,
+            RegFlag::HalfCarry => 0x20,
+            RegFlag::Carry => 0x10,
+        };
+        self.flag & bit != 0
+    }
+
     fn advance_pc(&mut self) -> u16 {
         let pc = self.pc;
         self.pc += 1;
