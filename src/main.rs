@@ -465,11 +465,111 @@ impl Cpu {
                     self.reg.write_u16(Register::HL, self.ram.read_u16(addr));
                     self.reg.write_u16(Register::SP, addr + 2);
                 },
+                // Add instructions
+                0x87 => {
+                    let n = self.reg.read(Register::A);
+                    self.add(Register::A, n);
+                },
+                0x80 => {
+                    let n = self.reg.read(Register::B);
+                    self.add(Register::A, n);
+                },
+                0x81 => {
+                    let n = self.reg.read(Register::C);
+                    self.add(Register::A, n);
+                },
+                0x82 => {
+                    let n = self.reg.read(Register::D);
+                    self.add(Register::A, n);
+                },
+                0x83 => {
+                    let n = self.reg.read(Register::E);
+                    self.add(Register::A, n);
+                },
+                0x84 => {
+                    let n = self.reg.read(Register::H);
+                    self.add(Register::A, n);
+                },
+                0x85 => {
+                    let n = self.reg.read(Register::L);
+                    self.add(Register::A, n);
+                },
+                0x86 => {
+                    let n = self.ram.read(self.reg.read_u16(Register::HL));
+                    self.add(Register::A, n);
+                },
+                0xC6 => {
+                    let n = instr.param(0);
+                    self.add(Register::A, n);
+                },
+                // Add with carry instructions
+                0x8F => {
+                    let carry = self.reg.get_flag(RegFlag::Carry);
+                    let n = self.reg.read(Register::A);
+                    self.add_with_carry(Register::A, n, carry);
+                },
+                0x88 => {
+                    let carry = self.reg.get_flag(RegFlag::Carry);
+                    let n = self.reg.read(Register::B);
+                    self.add_with_carry(Register::A, n, carry);
+                },
+                0x89 => {
+                    let carry = self.reg.get_flag(RegFlag::Carry);
+                    let n = self.reg.read(Register::C);
+                    self.add_with_carry(Register::A, n, carry);
+                },
+                0x8A => {
+                    let carry = self.reg.get_flag(RegFlag::Carry);
+                    let n = self.reg.read(Register::D);
+                    self.add_with_carry(Register::A, n, carry);
+                },
+                0x8B => {
+                    let carry = self.reg.get_flag(RegFlag::Carry);
+                    let n = self.reg.read(Register::E);
+                    self.add_with_carry(Register::A, n, carry);
+                },
+                0x8C => {
+                    let carry = self.reg.get_flag(RegFlag::Carry);
+                    let n = self.reg.read(Register::H);
+                    self.add_with_carry(Register::A, n, carry);
+                },
+                0x8D => {
+                    let carry = self.reg.get_flag(RegFlag::Carry);
+                    let n = self.reg.read(Register::L);
+                    self.add_with_carry(Register::A, n, carry);
+                },
+                0x8E => {
+                    let carry = self.reg.get_flag(RegFlag::Carry);
+                    let n = self.ram.read(self.reg.read_u16(Register::HL));
+                    self.add_with_carry(Register::A, n, carry);
+                },
+                0xCE => {
+                    let carry = self.reg.get_flag(RegFlag::Carry);
+                    let n = instr.param(0);
+                    self.add_with_carry(Register::A, n, carry);
+                },
                 _ => panic!("Instruction not implemented!"),
             }
             self.cycle_block = instr.cycles();
         }
         self.cycle_block -= 1;
+    }
+
+    fn add(&mut self, reg: Register, n: u8) {
+        self.add_with_carry(reg, n, false);
+    }
+
+    fn add_with_carry(&mut self, reg: Register, n: u8, carry_flag: bool) {
+        let carry = if carry_flag { 1 } else { 0 };
+        let x = self.reg.read(reg);
+        let halfsum = (x & 0x0F) + (n & 0x0F) + carry;
+        let sum = x as u16 + n as u16 + carry as u16;
+        let sum_u8 = (sum & 0xFF) as u8;
+        self.reg.set_flag(RegFlag::Zero, sum_u8 == 0);
+        self.reg.set_flag(RegFlag::Subtract, false);
+        self.reg.set_flag(RegFlag::HalfCarry, halfsum > 0x0F);
+        self.reg.set_flag(RegFlag::Carry, sum > 0xFF);
+        self.reg.write(reg, sum_u8);
     }
 
 }
