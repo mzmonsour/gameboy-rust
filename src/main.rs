@@ -548,7 +548,7 @@ impl Cpu {
                     let n = instr.param(0);
                     self.add_with_carry(Register::A, n, carry);
                 },
-                _ => panic!("Instruction not implemented!"),
+                _ => panic!("Instruction not implemented! Opcode {}", instr.opcode()),
             }
             self.cycle_block = instr.cycles();
         }
