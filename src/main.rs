@@ -17,7 +17,7 @@ impl AddressSpace {
     }
 
     fn read_slice(&self, addr: u16, bytes: u16) -> &[u8] {
-        self.data.slice(addr as usize, (addr + bytes) as usize)
+        &self.data[addr as usize .. (addr + bytes) as usize]
     }
 
     fn write(&mut self, addr: u16, data: u8) {
@@ -68,7 +68,7 @@ impl Instr {
 
 }
 
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 enum RegFlag {
     Zero,
     Subtract,
@@ -76,7 +76,7 @@ enum RegFlag {
     Carry,
 }
 
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 enum Register {
     A,
     B,
