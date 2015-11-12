@@ -8,11 +8,19 @@ use std::num::Wrapping;
 
 static GB_FREQUENCY: u32 = 4194304;
 
+#[derive(Copy, Clone)]
+pub enum CpuState {
+    Running, // Instructions run normally
+    Halted, // No instructions are run, reset on interrupt
+    Stopped, // No instructions are run, reset on user input
+}
+
 pub struct Cpu {
     reg: RegData,
     ram: AddressSpace,
     freq: u32,
     clock: u64,
+    state: CpuState,
 }
 
 impl Cpu {
@@ -27,10 +35,23 @@ impl Cpu {
             ram: AddressSpace::new(),
             freq: freq,
             clock: 0,
+            state: CpuState::Running,
+        }
+    }
+
+    pub fn is_stopped(self) -> bool {
+        if let CpuState::Stopped = self.state {
+            true
+        } else {
+            false
         }
     }
 
     pub fn do_instr(&mut self) -> u32 {
+        match self.state {
+            CpuState::Running => (),
+            CpuState::Halted | CpuState::Stopped => return 0,
+        }
         let instr = Instr::parse(&mut self.reg, &self.ram);
         match instr.opcode() {
             // 8-bit immediate loads
@@ -743,6 +764,21 @@ impl Cpu {
             },
             // NOP
             0x00 => (),
+            // Halt CPU
+            0x76 => {
+                self.state = CpuState::Halted;
+            },
+            // Stop CPU, maybe other instructions?
+            0x10 => {
+                match instr.param(0) {
+                    // Stop CPU
+                    0x00 => {
+                        self.state = CpuState::Stopped;
+                    },
+
+                    _ => panic!("Instruction not implemented! Opcode {:X} {:X}", instr.opcode(), instr.param(0)),
+                }
+            },
 
             _ => panic!("Instruction not implemented! Opcode {:X}", instr.opcode()),
         }
