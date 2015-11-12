@@ -714,11 +714,11 @@ impl Cpu {
                         self.ram.write(addr, x);
                     },
 
-                    _ => panic!("Instruction not implemented! Opcode {} {}", instr.opcode(), instr.param(0)),
+                    _ => panic!("Instruction not implemented! Opcode {:X} {:X}", instr.opcode(), instr.param(0)),
                 }
             },
 
-            _ => panic!("Instruction not implemented! Opcode {}", instr.opcode()),
+            _ => panic!("Instruction not implemented! Opcode {:X}", instr.opcode()),
         }
         let cycles = instr.cycles();
         self.clock += cycles as u64;
