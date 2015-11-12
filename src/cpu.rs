@@ -636,6 +636,34 @@ impl Cpu {
                 let n = instr.param(0);
                 self.sub_no_writeback(a, n, false);
             }
+            // Incrementing
+            0x3C => self.add(Register::A, 1),
+            0x04 => self.add(Register::B, 1),
+            0x0C => self.add(Register::C, 1),
+            0x14 => self.add(Register::D, 1),
+            0x1C => self.add(Register::E, 1),
+            0x24 => self.add(Register::H, 1),
+            0x2C => self.add(Register::L, 1),
+            0x34 => {
+                let addr = self.reg.read_u16(Register::HL);
+                let n = self.ram.read(addr);
+                let sum = self.add_no_writeback(n, 1, false);
+                self.ram.write(addr, sum);
+            }
+            // Decrementing
+            0x3D => self.sub(Register::A, 1),
+            0x05 => self.sub(Register::B, 1),
+            0x0D => self.sub(Register::C, 1),
+            0x15 => self.sub(Register::D, 1),
+            0x1D => self.sub(Register::E, 1),
+            0x25 => self.sub(Register::H, 1),
+            0x2D => self.sub(Register::L, 1),
+            0x35 => {
+                let addr = self.reg.read_u16(Register::HL);
+                let n = self.ram.read(addr);
+                let diff = self.sub_no_writeback(n, 1, false);
+                self.ram.write(addr, diff);
+            }
             _ => panic!("Instruction not implemented! Opcode {}", instr.opcode()),
         }
         let cycles = instr.cycles();
