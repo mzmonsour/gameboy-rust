@@ -398,6 +398,198 @@ impl Cpu {
                 let n = instr.param(0);
                 self.sub_with_carry(Register::A, n, carry);
             },
+            // Bitwise AND
+            0xA7 => {
+                let a = self.reg.read(Register::A);
+                let n = a;
+                let x = a & n;
+                self.set_bitand_flags(x);
+                self.reg.write(Register::A, x);
+            },
+            0xA0 => {
+                let a = self.reg.read(Register::A);
+                let n = self.reg.read(Register::B);
+                let x = a & n;
+                self.set_bitand_flags(x);
+                self.reg.write(Register::A, x);
+            },
+            0xA1 => {
+                let a = self.reg.read(Register::A);
+                let n = self.reg.read(Register::C);
+                let x = a & n;
+                self.set_bitand_flags(x);
+                self.reg.write(Register::A, x);
+            },
+            0xA2 => {
+                let a = self.reg.read(Register::A);
+                let n = self.reg.read(Register::D);
+                let x = a & n;
+                self.set_bitand_flags(x);
+                self.reg.write(Register::A, x);
+            },
+            0xA3 => {
+                let a = self.reg.read(Register::A);
+                let n = self.reg.read(Register::E);
+                let x = a & n;
+                self.set_bitand_flags(x);
+                self.reg.write(Register::A, x);
+            },
+            0xA4 => {
+                let a = self.reg.read(Register::A);
+                let n = self.reg.read(Register::H);
+                let x = a & n;
+                self.set_bitand_flags(x);
+                self.reg.write(Register::A, x);
+            },
+            0xA5 => {
+                let a = self.reg.read(Register::A);
+                let n = self.reg.read(Register::L);
+                let x = a & n;
+                self.set_bitand_flags(x);
+                self.reg.write(Register::A, x);
+            },
+            0xA6 => {
+                let a = self.reg.read(Register::A);
+                let n = self.ram.read(self.reg.read_u16(Register::HL));
+                let x = a & n;
+                self.set_bitand_flags(x);
+                self.reg.write(Register::A, x);
+            },
+            0xE6 => {
+                let a = self.reg.read(Register::A);
+                let n = instr.param(0);
+                let x = a & n;
+                self.set_bitand_flags(x);
+                self.reg.write(Register::A, x);
+            },
+            // Bitwise OR
+            0xB9 => {
+                let a = self.reg.read(Register::A);
+                let n = a;
+                let x = a | n;
+                self.set_bitor_flags(x);
+                self.reg.write(Register::A, x);
+            },
+            0xB0 => {
+                let a = self.reg.read(Register::A);
+                let n = self.reg.read(Register::B);
+                let x = a | n;
+                self.set_bitor_flags(x);
+                self.reg.write(Register::A, x);
+            },
+            0xB1 => {
+                let a = self.reg.read(Register::A);
+                let n = self.reg.read(Register::C);
+                let x = a | n;
+                self.set_bitor_flags(x);
+                self.reg.write(Register::A, x);
+            },
+            0xB2 => {
+                let a = self.reg.read(Register::A);
+                let n = self.reg.read(Register::D);
+                let x = a | n;
+                self.set_bitor_flags(x);
+                self.reg.write(Register::A, x);
+            },
+            0xB3 => {
+                let a = self.reg.read(Register::A);
+                let n = self.reg.read(Register::E);
+                let x = a | n;
+                self.set_bitor_flags(x);
+                self.reg.write(Register::A, x);
+            },
+            0xB4 => {
+                let a = self.reg.read(Register::A);
+                let n = self.reg.read(Register::H);
+                let x = a | n;
+                self.set_bitor_flags(x);
+                self.reg.write(Register::A, x);
+            },
+            0xB5 => {
+                let a = self.reg.read(Register::A);
+                let n = self.reg.read(Register::L);
+                let x = a | n;
+                self.set_bitor_flags(x);
+                self.reg.write(Register::A, x);
+            },
+            0xB6 => {
+                let a = self.reg.read(Register::A);
+                let n = self.ram.read(self.reg.read_u16(Register::HL));
+                let x = a | n;
+                self.set_bitor_flags(x);
+                self.reg.write(Register::A, x);
+            },
+            0xF6 => {
+                let a = self.reg.read(Register::A);
+                let n = instr.param(0);
+                let x = a | n;
+                self.set_bitor_flags(x);
+                self.reg.write(Register::A, x);
+            },
+            // Bitwise XOR
+            0xAF => {
+                let a = self.reg.read(Register::A);
+                let n = a;
+                let x = a ^ n;
+                self.set_bitor_flags(x);
+                self.reg.write(Register::A, x);
+            },
+            0xA8 => {
+                let a = self.reg.read(Register::A);
+                let n = self.reg.read(Register::B);
+                let x = a ^ n;
+                self.set_bitor_flags(x);
+                self.reg.write(Register::A, x);
+            },
+            0xA9 => {
+                let a = self.reg.read(Register::A);
+                let n = self.reg.read(Register::C);
+                let x = a ^ n;
+                self.set_bitor_flags(x);
+                self.reg.write(Register::A, x);
+            },
+            0xAA => {
+                let a = self.reg.read(Register::A);
+                let n = self.reg.read(Register::D);
+                let x = a ^ n;
+                self.set_bitor_flags(x);
+                self.reg.write(Register::A, x);
+            },
+            0xAB => {
+                let a = self.reg.read(Register::A);
+                let n = self.reg.read(Register::E);
+                let x = a ^ n;
+                self.set_bitor_flags(x);
+                self.reg.write(Register::A, x);
+            },
+            0xAC => {
+                let a = self.reg.read(Register::A);
+                let n = self.reg.read(Register::H);
+                let x = a ^ n;
+                self.set_bitor_flags(x);
+                self.reg.write(Register::A, x);
+            },
+            0xAD => {
+                let a = self.reg.read(Register::A);
+                let n = self.reg.read(Register::L);
+                let x = a ^ n;
+                self.set_bitor_flags(x);
+                self.reg.write(Register::A, x);
+            },
+            0xAE => {
+                let a = self.reg.read(Register::A);
+                let n = self.ram.read(self.reg.read_u16(Register::HL));
+                let x = a ^ n;
+                self.set_bitor_flags(x);
+                self.reg.write(Register::A, x);
+            },
+            0xEE => {
+                let a = self.reg.read(Register::A);
+                let n = instr.param(0);
+                let x = a ^ n;
+                self.set_bitor_flags(x);
+                self.reg.write(Register::A, x);
+            },
             _ => panic!("Instruction not implemented! Opcode {}", instr.opcode()),
         }
         let cycles = instr.cycles();
@@ -437,5 +629,19 @@ impl Cpu {
         self.reg.set_flag(RegFlag::HalfCarry, halfdiff > 0x0F);
         self.reg.set_flag(RegFlag::Carry, diff > 0xFF);
         self.reg.write(reg, diff_u8);
+    }
+
+    pub fn set_bitand_flags(&mut self, x: u8) {
+        self.reg.set_flag(RegFlag::Zero, x == 0);
+        self.reg.set_flag(RegFlag::Subtract, false);
+        self.reg.set_flag(RegFlag::HalfCarry, true);
+        self.reg.set_flag(RegFlag::Carry, false);
+    }
+
+    pub fn set_bitor_flags(&mut self, x: u8) {
+        self.reg.set_flag(RegFlag::Zero, x == 0);
+        self.reg.set_flag(RegFlag::Subtract, false);
+        self.reg.set_flag(RegFlag::HalfCarry, false);
+        self.reg.set_flag(RegFlag::Carry, false);
     }
 }
