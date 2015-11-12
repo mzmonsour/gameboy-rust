@@ -717,6 +717,32 @@ impl Cpu {
                     _ => panic!("Instruction not implemented! Opcode {:X} {:X}", instr.opcode(), instr.param(0)),
                 }
             },
+            // DAA instruction: See Z80 reference for behavior
+            0x27 => {
+                println!("Warning: Instruction DAA not implemented");
+            },
+            // Complement register
+            0x2F => {
+                let x = self.reg.read(Register::A) ^ 0xFF;
+                self.reg.set_flag(RegFlag::Subtract, true);
+                self.reg.set_flag(RegFlag::HalfCarry, true);
+                self.reg.write(Register::A, x);
+            },
+            // Complement carry flag
+            0x3F => {
+                let c = self.reg.get_flag(RegFlag::Carry);
+                self.reg.set_flag(RegFlag::Subtract, false);
+                self.reg.set_flag(RegFlag::HalfCarry, false);
+                self.reg.set_flag(RegFlag::Carry, !c);
+            },
+            // Set carry flag
+            0x37 => {
+                self.reg.set_flag(RegFlag::Subtract, false);
+                self.reg.set_flag(RegFlag::HalfCarry, false);
+                self.reg.set_flag(RegFlag::Carry, true);
+            },
+            // NOP
+            0x00 => (),
 
             _ => panic!("Instruction not implemented! Opcode {:X}", instr.opcode()),
         }
