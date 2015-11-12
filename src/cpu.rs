@@ -789,6 +789,18 @@ impl Cpu {
             // Enable/disable interrupts
             0xF3 => self.intlevel = false,
             0xFB => self.intlevel = true,
+            // Left rotate A
+            0x07 => {
+                let a = self.reg.read(Register::A);
+                let rot = self.lrot(a, 1);
+                self.reg.write(Register::A, rot);
+            },
+            // Left rotate A through carry
+            0x17 => {
+                let a = self.reg.read(Register::A);
+                let rot = self.lrot_through(a, 1);
+                self.reg.write(Register::A, rot);
+            },
 
             _ => panic!("Instruction not implemented! Opcode {:X}", instr.opcode()),
         }
@@ -889,5 +901,34 @@ impl Cpu {
         let n = self.reg.read(reg);
         let x = self.swap_bits_no_writeback(n);
         self.reg.write(reg, x);
+    }
+
+    /// Left rotate, leaving the old most significant bit in the carry
+    pub fn lrot(&mut self, x: u8, n: u8) -> u8 {
+        let n = n % 8; // Reduce rotation to one cycle
+        let shift = (x as u32) << n;
+        let overflow = shift & 0xFF00; // Mask bits outside range 0..7
+        let rot = ((shift | (overflow >> 8)) & 0xFF) as u8;
+        let carry = rot & 0x01; // Last bit to enter the carry (edge case where n == 0)
+        self.reg.set_flag(RegFlag::Zero, rot == 0);
+        self.reg.set_flag(RegFlag::Subtract, false);
+        self.reg.set_flag(RegFlag::HalfCarry, false);
+        self.reg.set_flag(RegFlag::Carry, carry != 0);
+        rot
+    }
+
+    /// Left rotate, treating the carry as part of the value
+    pub fn lrot_through(&mut self, x: u8, n: u8) -> u8 {
+        let n = n % 9;
+        let carry = if self.reg.get_flag(RegFlag::Carry) { 0x100 } else { 0 };
+        let shift = (x as u32 | carry) << n;
+        let carry = shift & 0x100;
+        let overflow = shift & 0xFFE00;
+        let rot = ((shift | (overflow >> 9)) & 0xFF) as u8;
+        self.reg.set_flag(RegFlag::Zero, rot == 0);
+        self.reg.set_flag(RegFlag::Subtract, false);
+        self.reg.set_flag(RegFlag::HalfCarry, false);
+        self.reg.set_flag(RegFlag::Carry, carry != 0);
+        rot
     }
 }
