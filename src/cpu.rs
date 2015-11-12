@@ -960,4 +960,38 @@ impl Cpu {
         self.reg.set_flag(RegFlag::Carry, carry != 0);
         rot
     }
+
+    pub fn lshift(&mut self, x: u8, n: u8) -> u8 {
+        let shift = (x as u32) << n;
+        let carry = shift & 0x100;
+        let shift = (shift & 0xFF) as u8;
+        self.reg.set_flag(RegFlag::Zero, shift == 0);
+        self.reg.set_flag(RegFlag::Subtract, false);
+        self.reg.set_flag(RegFlag::HalfCarry, false);
+        self.reg.set_flag(RegFlag::Carry, carry != 0);
+        shift
+    }
+
+    pub fn rshift_logical(&mut self, x: u8, n: u8) -> u8 {
+        let shift = x >> n;
+        let carry = if n == 0 { 0 } else { (x as u32) & (1 << (n - 1)) };
+        self.reg.set_flag(RegFlag::Zero, shift == 0);
+        self.reg.set_flag(RegFlag::Subtract, false);
+        self.reg.set_flag(RegFlag::HalfCarry, false);
+        self.reg.set_flag(RegFlag::Carry, carry != 0);
+        shift
+    }
+
+    pub fn rshift_arithmetic(&mut self, x: u8, n: u8) -> u8 {
+        let n = if n > 8 { 8 } else { n };
+        let msb = x & 0x80;
+        let ext = if msb != 0 { 0xFFFFFF00 | x as u32 } else { x as u32 };
+        let shift = ((ext >> n) & 0xFF) as u8;
+        let carry = if n == 0 { 0 } else { ext & (1 << (n - 1)) };
+        self.reg.set_flag(RegFlag::Zero, shift == 0);
+        self.reg.set_flag(RegFlag::Subtract, false);
+        self.reg.set_flag(RegFlag::HalfCarry, false);
+        self.reg.set_flag(RegFlag::Carry, carry != 0);
+        shift
+    }
 }
