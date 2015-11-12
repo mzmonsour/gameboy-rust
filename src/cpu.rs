@@ -696,7 +696,28 @@ impl Cpu {
             0x1B => self.dec_u16(Register::DE),
             0x2B => self.dec_u16(Register::HL),
             0x3B => self.dec_u16(Register::SP),
-            
+            // Bit operations
+            0xCB => {
+                match instr.param(0) {
+                    // Swap "upper and lower nibbles"
+                    0x37 => self.swap_bits(Register::A),
+                    0x30 => self.swap_bits(Register::B),
+                    0x31 => self.swap_bits(Register::C),
+                    0x32 => self.swap_bits(Register::D),
+                    0x33 => self.swap_bits(Register::E),
+                    0x34 => self.swap_bits(Register::H),
+                    0x35 => self.swap_bits(Register::L),
+                    0x36 => {
+                        let addr = self.reg.read_u16(Register::HL);
+                        let n = self.ram.read(addr);
+                        let x = self.swap_bits_no_writeback(n);
+                        self.ram.write(addr, x);
+                    },
+
+                    _ => panic!("Instruction not implemented! Opcode {} {}", instr.opcode(), instr.param(0)),
+                }
+            },
+
             _ => panic!("Instruction not implemented! Opcode {}", instr.opcode()),
         }
         let cycles = instr.cycles();
@@ -781,5 +802,20 @@ impl Cpu {
         self.reg.set_flag(RegFlag::Subtract, false);
         self.reg.set_flag(RegFlag::HalfCarry, false);
         self.reg.set_flag(RegFlag::Carry, false);
+    }
+
+    pub fn swap_bits_no_writeback(&mut self, n: u8) -> u8 {
+        let x = ((n & 0x0F) << 4) | ((n & 0xF0) >> 4);
+        self.reg.set_flag(RegFlag::Zero, x == 0);
+        self.reg.set_flag(RegFlag::Subtract, false);
+        self.reg.set_flag(RegFlag::HalfCarry, false);
+        self.reg.set_flag(RegFlag::Carry, false);
+        x
+    }
+
+    pub fn swap_bits(&mut self, reg: Register) {
+        let n = self.reg.read(reg);
+        let x = self.swap_bits_no_writeback(n);
+        self.reg.write(reg, x);
     }
 }
