@@ -592,40 +592,49 @@ impl Cpu {
             },
             // Comparison instructions
             0xBF => {
-                let n = self.reg.read(Register::A);
-                self.sub_no_writeback(Register::A, n, false);
+                let a = self.reg.read(Register::A);
+                let n = a;
+                self.sub_no_writeback(a, n, false);
             }
             0xB8 => {
+                let a = self.reg.read(Register::A);
                 let n = self.reg.read(Register::B);
-                self.sub_no_writeback(Register::A, n, false);
+                self.sub_no_writeback(a, n, false);
             }
             0xB9 => {
+                let a = self.reg.read(Register::A);
                 let n = self.reg.read(Register::C);
-                self.sub_no_writeback(Register::A, n, false);
+                self.sub_no_writeback(a, n, false);
             }
             0xBA => {
+                let a = self.reg.read(Register::A);
                 let n = self.reg.read(Register::D);
-                self.sub_no_writeback(Register::A, n, false);
+                self.sub_no_writeback(a, n, false);
             }
             0xBB => {
+                let a = self.reg.read(Register::A);
                 let n = self.reg.read(Register::E);
-                self.sub_no_writeback(Register::A, n, false);
+                self.sub_no_writeback(a, n, false);
             }
             0xBC => {
+                let a = self.reg.read(Register::A);
                 let n = self.reg.read(Register::H);
-                self.sub_no_writeback(Register::A, n, false);
+                self.sub_no_writeback(a, n, false);
             }
             0xBD => {
+                let a = self.reg.read(Register::A);
                 let n = self.reg.read(Register::L);
-                self.sub_no_writeback(Register::A, n, false);
+                self.sub_no_writeback(a, n, false);
             }
             0xBE => {
+                let a = self.reg.read(Register::A);
                 let n = self.ram.read(self.reg.read_u16(Register::HL));
-                self.sub_no_writeback(Register::A, n, false);
+                self.sub_no_writeback(a, n, false);
             }
             0xFE => {
+                let a = self.reg.read(Register::A);
                 let n = instr.param(0);
-                self.sub_no_writeback(Register::A, n, false);
+                self.sub_no_writeback(a, n, false);
             }
             _ => panic!("Instruction not implemented! Opcode {}", instr.opcode()),
         }
@@ -638,9 +647,8 @@ impl Cpu {
         self.add_with_carry(reg, n, false);
     }
 
-    pub fn add_with_carry(&mut self, reg: Register, n: u8, carry_flag: bool) {
+    pub fn add_no_writeback(&mut self, x: u8, n: u8, carry_flag: bool) -> u8 {
         let carry = if carry_flag { 1 } else { 0 };
-        let x = self.reg.read(reg);
         let halfsum = (x & 0x0F) + (n & 0x0F) + carry;
         let sum = x as u16 + n as u16 + carry as u16;
         let sum_u8 = (sum & 0xFF) as u8;
@@ -648,18 +656,24 @@ impl Cpu {
         self.reg.set_flag(RegFlag::Subtract, false);
         self.reg.set_flag(RegFlag::HalfCarry, halfsum > 0x0F);
         self.reg.set_flag(RegFlag::Carry, sum > 0xFF);
-        self.reg.write(reg, sum_u8);
+        sum_u8
+    }
+
+    pub fn add_with_carry(&mut self, reg: Register, n: u8, carry_flag: bool) {
+        let x = self.reg.read(reg);
+        let sum = self.add_no_writeback(x, n, carry_flag);
+        self.reg.write(reg, sum);
     }
 
     pub fn sub(&mut self, reg: Register, n: u8) {
         self.sub_with_carry(reg, n, false);
     }
 
-    pub fn sub_no_writeback(&mut self, reg: Register, n: u8, carry_flag: bool) -> u8 {
+    pub fn sub_no_writeback(&mut self, x: u8, n: u8, carry_flag: bool) -> u8 {
         let carry = if carry_flag { 1 } else { 0 };
-        let x = Wrapping(self.reg.read(reg) as u16 + carry);
-        let Wrapping(halfdiff) = (x & Wrapping(0x0F)) - Wrapping(n as u16 & 0x0F);
-        let Wrapping(diff) = x - Wrapping(n as u16);
+        let xw = Wrapping(x as u16 + carry);
+        let Wrapping(halfdiff) = (xw & Wrapping(0x0F)) - Wrapping(n as u16 & 0x0F);
+        let Wrapping(diff) = xw - Wrapping(n as u16);
         let diff_u8 = (diff & 0xFF) as u8;
         self.reg.set_flag(RegFlag::Zero, diff_u8 == 0);
         self.reg.set_flag(RegFlag::Subtract, true);
@@ -669,7 +683,8 @@ impl Cpu {
     }
 
     pub fn sub_with_carry(&mut self, reg: Register, n: u8, carry_flag: bool) {
-        let diff = self.sub_no_writeback(reg, n, carry_flag);
+        let x = self.reg.read(reg);
+        let diff = self.sub_no_writeback(x, n, carry_flag);
         self.reg.write(reg, diff);
     }
 
