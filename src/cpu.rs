@@ -741,6 +741,300 @@ impl Cpu {
                         let x = self.swap_bits_no_writeback(n);
                         self.ram.write(addr, x);
                     },
+                    // Rotate left
+                    0x07 => {
+                        let x = self.reg.read(Register::A);
+                        let rot = self.lrot(x);
+                        self.reg.write(Register::A, rot);
+                    },
+                    0x00 => {
+                        let x = self.reg.read(Register::B);
+                        let rot = self.lrot(x);
+                        self.reg.write(Register::B, rot);
+                    },
+                    0x01 => {
+                        let x = self.reg.read(Register::C);
+                        let rot = self.lrot(x);
+                        self.reg.write(Register::C, rot);
+                    },
+                    0x02 => {
+                        let x = self.reg.read(Register::D);
+                        let rot = self.lrot(x);
+                        self.reg.write(Register::D, rot);
+                    },
+                    0x03 => {
+                        let x = self.reg.read(Register::E);
+                        let rot = self.lrot(x);
+                        self.reg.write(Register::E, rot);
+                    },
+                    0x04 => {
+                        let x = self.reg.read(Register::H);
+                        let rot = self.lrot(x);
+                        self.reg.write(Register::H, rot);
+                    },
+                    0x05 => {
+                        let x = self.reg.read(Register::L);
+                        let rot = self.lrot(x);
+                        self.reg.write(Register::L, rot);
+                    },
+                    0x06 => {
+                        let addr = self.reg.read_u16(Register::HL);
+                        let x = self.ram.read(addr);
+                        let rot = self.lrot(x);
+                        self.ram.write(addr, rot);
+                    },
+                    // Rotate left through carry
+                    0x17 => {
+                        let x = self.reg.read(Register::A);
+                        let rot = self.lrot_through(x);
+                        self.reg.write(Register::A, rot);
+                    },
+                    0x10 => {
+                        let x = self.reg.read(Register::B);
+                        let rot = self.lrot_through(x);
+                        self.reg.write(Register::B, rot);
+                    },
+                    0x11 => {
+                        let x = self.reg.read(Register::C);
+                        let rot = self.lrot_through(x);
+                        self.reg.write(Register::C, rot);
+                    },
+                    0x12 => {
+                        let x = self.reg.read(Register::D);
+                        let rot = self.lrot_through(x);
+                        self.reg.write(Register::D, rot);
+                    },
+                    0x13 => {
+                        let x = self.reg.read(Register::E);
+                        let rot = self.lrot_through(x);
+                        self.reg.write(Register::E, rot);
+                    },
+                    0x14 => {
+                        let x = self.reg.read(Register::H);
+                        let rot = self.lrot_through(x);
+                        self.reg.write(Register::H, rot);
+                    },
+                    0x15 => {
+                        let x = self.reg.read(Register::L);
+                        let rot = self.lrot_through(x);
+                        self.reg.write(Register::L, rot);
+                    },
+                    0x16 => {
+                        let addr = self.reg.read_u16(Register::HL);
+                        let x = self.ram.read(addr);
+                        let rot = self.lrot_through(x);
+                        self.ram.write(addr, rot);
+                    },
+                    // Rotate right
+                    0x0F => {
+                        let x = self.reg.read(Register::A);
+                        let rot = self.rrot(x);
+                        self.reg.write(Register::A, rot);
+                    },
+                    0x08 => {
+                        let x = self.reg.read(Register::B);
+                        let rot = self.rrot(x);
+                        self.reg.write(Register::B, rot);
+                    },
+                    0x09 => {
+                        let x = self.reg.read(Register::C);
+                        let rot = self.rrot(x);
+                        self.reg.write(Register::C, rot);
+                    },
+                    0x0A => {
+                        let x = self.reg.read(Register::D);
+                        let rot = self.rrot(x);
+                        self.reg.write(Register::D, rot);
+                    },
+                    0x0B => {
+                        let x = self.reg.read(Register::E);
+                        let rot = self.rrot(x);
+                        self.reg.write(Register::E, rot);
+                    },
+                    0x0C => {
+                        let x = self.reg.read(Register::H);
+                        let rot = self.rrot(x);
+                        self.reg.write(Register::H, rot);
+                    },
+                    0x0D => {
+                        let x = self.reg.read(Register::L);
+                        let rot = self.rrot(x);
+                        self.reg.write(Register::L, rot);
+                    },
+                    0x0E => {
+                        let addr = self.reg.read_u16(Register::HL);
+                        let x = self.ram.read(addr);
+                        let rot = self.rrot(x);
+                        self.ram.write(addr, rot);
+                    },
+                    // Rotate right through carry
+                    0x1F => {
+                        let x = self.reg.read(Register::A);
+                        let rot = self.rrot_through(x);
+                        self.reg.write(Register::A, rot);
+                    },
+                    0x18 => {
+                        let x = self.reg.read(Register::B);
+                        let rot = self.rrot_through(x);
+                        self.reg.write(Register::B, rot);
+                    },
+                    0x19 => {
+                        let x = self.reg.read(Register::C);
+                        let rot = self.rrot_through(x);
+                        self.reg.write(Register::C, rot);
+                    },
+                    0x1A => {
+                        let x = self.reg.read(Register::D);
+                        let rot = self.rrot_through(x);
+                        self.reg.write(Register::D, rot);
+                    },
+                    0x1B => {
+                        let x = self.reg.read(Register::E);
+                        let rot = self.rrot_through(x);
+                        self.reg.write(Register::E, rot);
+                    },
+                    0x1C => {
+                        let x = self.reg.read(Register::H);
+                        let rot = self.rrot_through(x);
+                        self.reg.write(Register::H, rot);
+                    },
+                    0x1D => {
+                        let x = self.reg.read(Register::L);
+                        let rot = self.rrot_through(x);
+                        self.reg.write(Register::L, rot);
+                    },
+                    0x1E => {
+                        let addr = self.reg.read_u16(Register::HL);
+                        let x = self.ram.read(addr);
+                        let rot = self.rrot_through(x);
+                        self.ram.write(addr, rot);
+                    },
+                    // Shift left
+                    0x27 => {
+                        let x = self.reg.read(Register::A);
+                        let shift = self.lshift(x);
+                        self.reg.write(Register::A, shift);
+                    },
+                    0x20 => {
+                        let x = self.reg.read(Register::B);
+                        let shift = self.lshift(x);
+                        self.reg.write(Register::B, shift);
+                    },
+                    0x21 => {
+                        let x = self.reg.read(Register::C);
+                        let shift = self.lshift(x);
+                        self.reg.write(Register::C, shift);
+                    },
+                    0x22 => {
+                        let x = self.reg.read(Register::D);
+                        let shift = self.lshift(x);
+                        self.reg.write(Register::D, shift);
+                    },
+                    0x23 => {
+                        let x = self.reg.read(Register::E);
+                        let shift = self.lshift(x);
+                        self.reg.write(Register::E, shift);
+                    },
+                    0x24 => {
+                        let x = self.reg.read(Register::H);
+                        let shift = self.lshift(x);
+                        self.reg.write(Register::H, shift);
+                    },
+                    0x25 => {
+                        let x = self.reg.read(Register::L);
+                        let shift = self.lshift(x);
+                        self.reg.write(Register::L, shift);
+                    },
+                    0x26 => {
+                        let addr = self.reg.read_u16(Register::HL);
+                        let x = self.ram.read(addr);
+                        let shift = self.lshift(x);
+                        self.ram.write(addr, shift);
+                    },
+                    // Shift right arithmetic
+                    0x2F => {
+                        let x = self.reg.read(Register::A);
+                        let shift = self.rshift_arithmetic(x);
+                        self.reg.write(Register::A, shift);
+                    },
+                    0x28 => {
+                        let x = self.reg.read(Register::B);
+                        let shift = self.rshift_arithmetic(x);
+                        self.reg.write(Register::B, shift);
+                    },
+                    0x29 => {
+                        let x = self.reg.read(Register::C);
+                        let shift = self.rshift_arithmetic(x);
+                        self.reg.write(Register::C, shift);
+                    },
+                    0x2A => {
+                        let x = self.reg.read(Register::D);
+                        let shift = self.rshift_arithmetic(x);
+                        self.reg.write(Register::D, shift);
+                    },
+                    0x2B => {
+                        let x = self.reg.read(Register::E);
+                        let shift = self.rshift_arithmetic(x);
+                        self.reg.write(Register::E, shift);
+                    },
+                    0x2C => {
+                        let x = self.reg.read(Register::H);
+                        let shift = self.rshift_arithmetic(x);
+                        self.reg.write(Register::H, shift);
+                    },
+                    0x2D => {
+                        let x = self.reg.read(Register::L);
+                        let shift = self.rshift_arithmetic(x);
+                        self.reg.write(Register::L, shift);
+                    },
+                    0x2E => {
+                        let addr = self.reg.read_u16(Register::HL);
+                        let x = self.ram.read(addr);
+                        let shift = self.rshift_arithmetic(x);
+                        self.ram.write(addr, shift);
+                    },
+                    // Shift right logical
+                    0x3F => {
+                        let x = self.reg.read(Register::A);
+                        let shift = self.rshift_logical(x);
+                        self.reg.write(Register::A, shift);
+                    },
+                    0x38 => {
+                        let x = self.reg.read(Register::B);
+                        let shift = self.rshift_logical(x);
+                        self.reg.write(Register::B, shift);
+                    },
+                    0x39 => {
+                        let x = self.reg.read(Register::C);
+                        let shift = self.rshift_logical(x);
+                        self.reg.write(Register::C, shift);
+                    },
+                    0x3A => {
+                        let x = self.reg.read(Register::D);
+                        let shift = self.rshift_logical(x);
+                        self.reg.write(Register::D, shift);
+                    },
+                    0x3B => {
+                        let x = self.reg.read(Register::E);
+                        let shift = self.rshift_logical(x);
+                        self.reg.write(Register::E, shift);
+                    },
+                    0x3C => {
+                        let x = self.reg.read(Register::H);
+                        let shift = self.rshift_logical(x);
+                        self.reg.write(Register::H, shift);
+                    },
+                    0x3D => {
+                        let x = self.reg.read(Register::L);
+                        let shift = self.rshift_logical(x);
+                        self.reg.write(Register::L, shift);
+                    },
+                    0x3E => {
+                        let addr = self.reg.read_u16(Register::HL);
+                        let x = self.ram.read(addr);
+                        let shift = self.rshift_logical(x);
+                        self.ram.write(addr, shift);
+                    },
 
                     _ => panic!("Instruction not implemented! Opcode {:X} {:X}", instr.opcode(), instr.param(0)),
                 }
@@ -792,13 +1086,25 @@ impl Cpu {
             // Left rotate A
             0x07 => {
                 let a = self.reg.read(Register::A);
-                let rot = self.lrot(a, 1);
+                let rot = self.lrot(a);
                 self.reg.write(Register::A, rot);
             },
             // Left rotate A through carry
             0x17 => {
                 let a = self.reg.read(Register::A);
-                let rot = self.lrot_through(a, 1);
+                let rot = self.lrot_through(a);
+                self.reg.write(Register::A, rot);
+            },
+            // Right rotate A
+            0x0F => {
+                let a = self.reg.read(Register::A);
+                let rot = self.rrot(a);
+                self.reg.write(Register::A, rot);
+            },
+            // Right rotate A through carry
+            0x1F => {
+                let a = self.reg.read(Register::A);
+                let rot = self.rrot_through(a);
                 self.reg.write(Register::A, rot);
             },
 
