@@ -4,6 +4,8 @@ use Register;
 use RegFlag;
 use RegData;
 
+use std::num::Wrapping;
+
 static GB_FREQUENCY: u32 = 4194304;
 
 pub struct Cpu {
@@ -313,6 +315,89 @@ impl Cpu {
                 let n = instr.param(0);
                 self.add_with_carry(Register::A, n, carry);
             },
+            // Subtract
+            0x97 => {
+                let n = self.reg.read(Register::A);
+                self.sub(Register::A, n);
+            },
+            0x90 => {
+                let n = self.reg.read(Register::B);
+                self.sub(Register::A, n);
+            },
+            0x91 => {
+                let n = self.reg.read(Register::C);
+                self.sub(Register::A, n);
+            },
+            0x92 => {
+                let n = self.reg.read(Register::D);
+                self.sub(Register::A, n);
+            },
+            0x93 => {
+                let n = self.reg.read(Register::E);
+                self.sub(Register::A, n);
+            },
+            0x94 => {
+                let n = self.reg.read(Register::H);
+                self.sub(Register::A, n);
+            },
+            0x95 => {
+                let n = self.reg.read(Register::L);
+                self.sub(Register::A, n);
+            },
+            0x96 => {
+                let n = self.ram.read(self.reg.read_u16(Register::HL));
+                self.sub(Register::A, n);
+            },
+            0xD6 => {
+                let n = instr.param(0);
+                self.sub(Register::A, n);
+            },
+            // Subtract with carry
+            0x9F => {
+                let carry = self.reg.get_flag(RegFlag::Carry);
+                let n = self.reg.read(Register::A);
+                self.sub_with_carry(Register::A, n, carry);
+            },
+            0x98 => {
+                let carry = self.reg.get_flag(RegFlag::Carry);
+                let n = self.reg.read(Register::B);
+                self.sub_with_carry(Register::A, n, carry);
+            },
+            0x99 => {
+                let carry = self.reg.get_flag(RegFlag::Carry);
+                let n = self.reg.read(Register::C);
+                self.sub_with_carry(Register::A, n, carry);
+            },
+            0x9A => {
+                let carry = self.reg.get_flag(RegFlag::Carry);
+                let n = self.reg.read(Register::D);
+                self.sub_with_carry(Register::A, n, carry);
+            },
+            0x9B => {
+                let carry = self.reg.get_flag(RegFlag::Carry);
+                let n = self.reg.read(Register::E);
+                self.sub_with_carry(Register::A, n, carry);
+            },
+            0x9C => {
+                let carry = self.reg.get_flag(RegFlag::Carry);
+                let n = self.reg.read(Register::H);
+                self.sub_with_carry(Register::A, n, carry);
+            },
+            0x9D => {
+                let carry = self.reg.get_flag(RegFlag::Carry);
+                let n = self.reg.read(Register::L);
+                self.sub_with_carry(Register::A, n, carry);
+            },
+            0x9E => {
+                let carry = self.reg.get_flag(RegFlag::Carry);
+                let n = self.ram.read(self.reg.read_u16(Register::HL));
+                self.sub_with_carry(Register::A, n, carry);
+            },
+            0xDE => {
+                let carry = self.reg.get_flag(RegFlag::Carry);
+                let n = instr.param(0);
+                self.sub_with_carry(Register::A, n, carry);
+            },
             _ => panic!("Instruction not implemented! Opcode {}", instr.opcode()),
         }
         let cycles = instr.cycles();
@@ -337,4 +422,20 @@ impl Cpu {
         self.reg.write(reg, sum_u8);
     }
 
+    pub fn sub(&mut self, reg: Register, n: u8) {
+        self.sub_with_carry(reg, n, false);
+    }
+
+    pub fn sub_with_carry(&mut self, reg: Register, n: u8, carry_flag: bool) {
+        let carry = if carry_flag { 1 } else { 0 };
+        let x = Wrapping(self.reg.read(reg) as u16 + carry);
+        let Wrapping(halfdiff) = (x & Wrapping(0x0F)) - Wrapping(n as u16 & 0x0F);
+        let Wrapping(diff) = x - Wrapping(n as u16);
+        let diff_u8 = (diff & 0xFF) as u8;
+        self.reg.set_flag(RegFlag::Zero, diff_u8 == 0);
+        self.reg.set_flag(RegFlag::Subtract, true);
+        self.reg.set_flag(RegFlag::HalfCarry, halfdiff > 0x0F);
+        self.reg.set_flag(RegFlag::Carry, diff > 0xFF);
+        self.reg.write(reg, diff_u8);
+    }
 }
