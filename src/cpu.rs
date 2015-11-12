@@ -664,6 +664,39 @@ impl Cpu {
                 let diff = self.sub_no_writeback(n, 1, false);
                 self.ram.write(addr, diff);
             }
+            // 16-bit add
+            0x09 => {
+                let n = self.reg.read_u16(Register::BC);
+                self.add_u16(Register::HL, n);
+            },
+            0x19 => {
+                let n = self.reg.read_u16(Register::DE);
+                self.add_u16(Register::HL, n);
+            },
+            0x29 => {
+                let n = self.reg.read_u16(Register::HL);
+                self.add_u16(Register::HL, n);
+            },
+            0x39 => {
+                let n = self.reg.read_u16(Register::SP);
+                self.add_u16(Register::HL, n);
+            },
+            0xE8 => {
+                let n = instr.param(0) as u16;
+                self.add_u16(Register::SP, n);
+            },
+            // 16-bit increment
+            // May not affect CPU flags?
+            0x03 => self.add_u16(Register::BC, 1),
+            0x13 => self.add_u16(Register::DE, 1),
+            0x23 => self.add_u16(Register::HL, 1),
+            0x33 => self.add_u16(Register::SP, 1),
+            // 16-bit decrement
+            0x0B => self.dec_u16(Register::BC),
+            0x1B => self.dec_u16(Register::DE),
+            0x2B => self.dec_u16(Register::HL),
+            0x3B => self.dec_u16(Register::SP),
+            
             _ => panic!("Instruction not implemented! Opcode {}", instr.opcode()),
         }
         let cycles = instr.cycles();
@@ -691,6 +724,26 @@ impl Cpu {
         let x = self.reg.read(reg);
         let sum = self.add_no_writeback(x, n, carry_flag);
         self.reg.write(reg, sum);
+    }
+
+    pub fn add_u16(&mut self, reg: Register, n: u16) {
+        let x = self.reg.read_u16(reg);
+        let halfsum = (x & 0xFFF) as u32 + (n & 0xFFF) as u32; // "Half" = 11th bit
+        let sum = x as u32 + n as u32;
+        let sum_u16 = (sum & 0xFFFF) as u16;
+        self.reg.set_flag(RegFlag::Zero, sum_u16 == 0); // Reference says ignore?
+        self.reg.set_flag(RegFlag::Subtract, false);
+        self.reg.set_flag(RegFlag::HalfCarry, halfsum > 0xFFF);
+        self.reg.set_flag(RegFlag::Carry, sum > 0xFFFF);
+        self.reg.write_u16(reg, sum_u16);
+    }
+
+    pub fn dec_u16(&mut self, reg: Register) {
+        let x = self.reg.read_u16(reg);
+        // Behavior at 0 unclear. Do we wrap, or ignore?
+        let diff = if x == 0 { 0 } else { x - 1 };
+        // Reference says don't set flags?
+        self.reg.write_u16(reg, diff);
     }
 
     pub fn sub(&mut self, reg: Register, n: u8) {
