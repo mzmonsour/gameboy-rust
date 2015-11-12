@@ -931,4 +931,33 @@ impl Cpu {
         self.reg.set_flag(RegFlag::Carry, carry != 0);
         rot
     }
+
+    /// Right rotate, leaving the old most significant bit in the carry
+    pub fn rrot(&mut self, x: u8, n: u8) -> u8 {
+        let n = n % 8;
+        let shift = ((x as u32) << 16) >> n;
+        let overflow = shift & 0xFFFF;
+        let rot = (((shift | (overflow << 8)) >> 16) & 0xFF) as u8;
+        let carry = rot & 0x80;
+        self.reg.set_flag(RegFlag::Zero, rot == 0);
+        self.reg.set_flag(RegFlag::Subtract, false);
+        self.reg.set_flag(RegFlag::HalfCarry, false);
+        self.reg.set_flag(RegFlag::Carry, carry != 0);
+        rot
+    }
+
+    /// Right rotate, treating the carry as part of the value
+    pub fn rrot_through(&mut self, x: u8, n: u8) -> u8 {
+        let n = n % 9;
+        let carry = if self.reg.get_flag(RegFlag::Carry) { 0x100 } else { 0 };
+        let shift = ((x as u32 | carry) << 16) >> n;
+        let carry = shift & 0x1000000;
+        let overflow = shift & 0xFFFF;
+        let rot = (((shift | (overflow << 9)) >> 16) & 0xFF) as u8;
+        self.reg.set_flag(RegFlag::Zero, rot == 0);
+        self.reg.set_flag(RegFlag::Subtract, false);
+        self.reg.set_flag(RegFlag::HalfCarry, false);
+        self.reg.set_flag(RegFlag::Carry, carry != 0);
+        rot
+    }
 }
