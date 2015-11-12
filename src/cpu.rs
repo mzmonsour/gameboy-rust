@@ -463,7 +463,7 @@ impl Cpu {
                 self.reg.write(Register::A, x);
             },
             // Bitwise OR
-            0xB9 => {
+            0xB7 => {
                 let a = self.reg.read(Register::A);
                 let n = a;
                 let x = a | n;
