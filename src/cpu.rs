@@ -590,6 +590,43 @@ impl Cpu {
                 self.set_bitor_flags(x);
                 self.reg.write(Register::A, x);
             },
+            // Comparison instructions
+            0xBF => {
+                let n = self.reg.read(Register::A);
+                self.sub_no_writeback(Register::A, n, false);
+            }
+            0xB8 => {
+                let n = self.reg.read(Register::B);
+                self.sub_no_writeback(Register::A, n, false);
+            }
+            0xB9 => {
+                let n = self.reg.read(Register::C);
+                self.sub_no_writeback(Register::A, n, false);
+            }
+            0xBA => {
+                let n = self.reg.read(Register::D);
+                self.sub_no_writeback(Register::A, n, false);
+            }
+            0xBB => {
+                let n = self.reg.read(Register::E);
+                self.sub_no_writeback(Register::A, n, false);
+            }
+            0xBC => {
+                let n = self.reg.read(Register::H);
+                self.sub_no_writeback(Register::A, n, false);
+            }
+            0xBD => {
+                let n = self.reg.read(Register::L);
+                self.sub_no_writeback(Register::A, n, false);
+            }
+            0xBE => {
+                let n = self.ram.read(self.reg.read_u16(Register::HL));
+                self.sub_no_writeback(Register::A, n, false);
+            }
+            0xFE => {
+                let n = instr.param(0);
+                self.sub_no_writeback(Register::A, n, false);
+            }
             _ => panic!("Instruction not implemented! Opcode {}", instr.opcode()),
         }
         let cycles = instr.cycles();
@@ -618,7 +655,7 @@ impl Cpu {
         self.sub_with_carry(reg, n, false);
     }
 
-    pub fn sub_with_carry(&mut self, reg: Register, n: u8, carry_flag: bool) {
+    pub fn sub_no_writeback(&mut self, reg: Register, n: u8, carry_flag: bool) -> u8 {
         let carry = if carry_flag { 1 } else { 0 };
         let x = Wrapping(self.reg.read(reg) as u16 + carry);
         let Wrapping(halfdiff) = (x & Wrapping(0x0F)) - Wrapping(n as u16 & 0x0F);
@@ -628,7 +665,12 @@ impl Cpu {
         self.reg.set_flag(RegFlag::Subtract, true);
         self.reg.set_flag(RegFlag::HalfCarry, halfdiff > 0x0F);
         self.reg.set_flag(RegFlag::Carry, diff > 0xFF);
-        self.reg.write(reg, diff_u8);
+        diff_u8
+    }
+
+    pub fn sub_with_carry(&mut self, reg: Register, n: u8, carry_flag: bool) {
+        let diff = self.sub_no_writeback(reg, n, carry_flag);
+        self.reg.write(reg, diff);
     }
 
     pub fn set_bitand_flags(&mut self, x: u8) {
