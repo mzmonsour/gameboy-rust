@@ -21,6 +21,7 @@ pub struct Cpu {
     freq: u32,
     clock: u64,
     state: CpuState,
+    intlevel: bool,
 }
 
 impl Cpu {
@@ -36,6 +37,7 @@ impl Cpu {
             freq: freq,
             clock: 0,
             state: CpuState::Running,
+            intlevel: true,
         }
     }
 
@@ -50,7 +52,12 @@ impl Cpu {
     pub fn do_instr(&mut self) -> u32 {
         match self.state {
             CpuState::Running => (),
-            CpuState::Halted | CpuState::Stopped => return 0,
+            CpuState::Halted | CpuState::Stopped => {
+                if !self.intlevel {
+                    println!("Warning: CPU stopped/halted and interrupts are disabled!");
+                }
+                return 0;
+            }
         }
         let instr = Instr::parse(&mut self.reg, &self.ram);
         match instr.opcode() {
@@ -779,6 +786,9 @@ impl Cpu {
                     _ => panic!("Instruction not implemented! Opcode {:X} {:X}", instr.opcode(), instr.param(0)),
                 }
             },
+            // Enable/disable interrupts
+            0xF3 => self.intlevel = false,
+            0xFB => self.intlevel = true,
 
             _ => panic!("Instruction not implemented! Opcode {:X}", instr.opcode()),
         }
