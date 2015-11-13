@@ -233,7 +233,30 @@ impl RegData {
 }
 
 fn main() {
-    let cpu = Cpu::new();
+    let args: Vec<String> = std::env::args().collect();
+    let mut opts = getopts::Options::new();
+    let matches = match opts.parse(&args[1..]) {
+        Ok(m) => { m },
+        Err(e) => panic!("Error: {}", e),
+    };
+    let input = if !matches.free.is_empty() {
+        matches.free[0].clone()
+    } else {
+        println!("No input ROM");
+        return;
+    };
+    let mut cpu = Cpu::new();
+    {
+        let mut ram = cpu.get_ram();
+        let mut romfile = match File::open(std::path::Path::new(&input)) {
+            Ok(f) => { f },
+            Err(e) => {
+                println!("Error opening file: {}", e);
+                return;
+            }
+        };
+        ram.load_rom(&mut romfile);
+    }
     'main: loop {
         println!("Nothing to do, breaking out of main");
         break 'main;
