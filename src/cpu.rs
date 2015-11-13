@@ -726,7 +726,8 @@ impl Cpu {
             0x3B => self.dec_u16(Register::SP),
             // Bit operations
             0xCB => {
-                match instr.param(0) {
+                let subop = instr.param(0);
+                match subop {
                     // Swap "upper and lower nibbles"
                     0x37 => self.swap_bits(Register::A),
                     0x30 => self.swap_bits(Register::B),
@@ -1035,6 +1036,148 @@ impl Cpu {
                         let shift = self.rshift_logical(x);
                         self.ram.write(addr, shift);
                     },
+                    // Test bit
+                    0x47 => {
+                        let x = self.reg.read(Register::A);
+                        let b = (subop & 0x38) >> 3;
+                        self.test_bit(x, b);
+                    },
+                    0x40 => {
+                        let x = self.reg.read(Register::B);
+                        let b = (subop & 0x38) >> 3;
+                        self.test_bit(x, b);
+                    },
+                    0x41 => {
+                        let x = self.reg.read(Register::C);
+                        let b = (subop & 0x38) >> 3;
+                        self.test_bit(x, b);
+                    },
+                    0x42 => {
+                        let x = self.reg.read(Register::D);
+                        let b = (subop & 0x38) >> 3;
+                        self.test_bit(x, b);
+                    },
+                    0x43 => {
+                        let x = self.reg.read(Register::E);
+                        let b = (subop & 0x38) >> 3;
+                        self.test_bit(x, b);
+                    },
+                    0x44 => {
+                        let x = self.reg.read(Register::H);
+                        let b = (subop & 0x38) >> 3;
+                        self.test_bit(x, b);
+                    },
+                    0x45 => {
+                        let x = self.reg.read(Register::L);
+                        let b = (subop & 0x38) >> 3;
+                        self.test_bit(x, b);
+                    },
+                    0x46 => {
+                        let addr = self.reg.read_u16(Register::HL);
+                        let x = self.ram.read(addr);
+                        let b = (subop & 0x38) >> 3;
+                        self.test_bit(x, b);
+                    },
+                    // Set bit
+                    0xC7 => {
+                        let x = self.reg.read(Register::A);
+                        let b = (subop & 0x38) >> 3;
+                        let v = x | (1 << b);
+                        self.reg.write(Register::A, v);
+                    },
+                    0xC0 => {
+                        let x = self.reg.read(Register::B);
+                        let b = (subop & 0x38) >> 3;
+                        let v = x | (1 << b);
+                        self.reg.write(Register::B, v);
+                    },
+                    0xC1 => {
+                        let x = self.reg.read(Register::C);
+                        let b = (subop & 0x38) >> 3;
+                        let v = x | (1 << b);
+                        self.reg.write(Register::C, v);
+                    },
+                    0xC2 => {
+                        let x = self.reg.read(Register::D);
+                        let b = (subop & 0x38) >> 3;
+                        let v = x | (1 << b);
+                        self.reg.write(Register::D, v);
+                    },
+                    0xC3 => {
+                        let x = self.reg.read(Register::E);
+                        let b = (subop & 0x38) >> 3;
+                        let v = x | (1 << b);
+                        self.reg.write(Register::E, v);
+                    },
+                    0xC4 => {
+                        let x = self.reg.read(Register::H);
+                        let b = (subop & 0x38) >> 3;
+                        let v = x | (1 << b);
+                        self.reg.write(Register::H, v);
+                    },
+                    0xC5 => {
+                        let x = self.reg.read(Register::L);
+                        let b = (subop & 0x38) >> 3;
+                        let v = x | (1 << b);
+                        self.reg.write(Register::L, v);
+                    },
+                    0xC6 => {
+                        let addr = self.reg.read_u16(Register::HL);
+                        let x = self.ram.read(addr);
+                        let b = (subop & 0x38) >> 3;
+                        let v = x | (1 << b);
+                        self.ram.write(addr, v);
+                    },
+                    // Reset bit
+                    0x87 => {
+                        let x = self.reg.read(Register::A);
+                        let b = (subop & 0x38) >> 3;
+                        let v = x & ((1 << b) ^ 0xFF);
+                        self.reg.write(Register::A, v);
+                    },
+                    0x80 => {
+                        let x = self.reg.read(Register::B);
+                        let b = (subop & 0x38) >> 3;
+                        let v = x & ((1 << b) ^ 0xFF);
+                        self.reg.write(Register::B, v);
+                    },
+                    0x81 => {
+                        let x = self.reg.read(Register::C);
+                        let b = (subop & 0x38) >> 3;
+                        let v = x & ((1 << b) ^ 0xFF);
+                        self.reg.write(Register::C, v);
+                    },
+                    0x82 => {
+                        let x = self.reg.read(Register::D);
+                        let b = (subop & 0x38) >> 3;
+                        let v = x & ((1 << b) ^ 0xFF);
+                        self.reg.write(Register::D, v);
+                    },
+                    0x83 => {
+                        let x = self.reg.read(Register::E);
+                        let b = (subop & 0x38) >> 3;
+                        let v = x & ((1 << b) ^ 0xFF);
+                        self.reg.write(Register::E, v);
+                    },
+                    0x84 => {
+                        let x = self.reg.read(Register::H);
+                        let b = (subop & 0x38) >> 3;
+                        let v = x & ((1 << b) ^ 0xFF);
+                        self.reg.write(Register::H, v);
+                    },
+                    0x85 => {
+                        let x = self.reg.read(Register::L);
+                        let b = (subop & 0x38) >> 3;
+                        let v = x & ((1 << b) ^ 0xFF);
+                        self.reg.write(Register::L, v);
+                    },
+                    0x86 => {
+                        let addr = self.reg.read_u16(Register::HL);
+                        let x = self.ram.read(addr);
+                        let b = (subop & 0x38) >> 3;
+                        let v = x & ((1 << b) ^ 0xFF);
+                        self.ram.write(addr, v);
+                    },
 
                     _ => panic!("Instruction not implemented! Opcode {:X} {:X}", instr.opcode(), instr.param(0)),
                 }
@@ -1291,4 +1434,12 @@ impl Cpu {
         self.reg.set_flag(RegFlag::Carry, lsb != 0);
         shift
     }
+
+    pub fn test_bit(&mut self, x: u8, b: u8) {
+        let bit = x & (1 << b);
+        self.reg.set_flag(RegFlag::Zero, bit == 0);
+        self.reg.set_flag(RegFlag::Subtract, false);
+        self.reg.set_flag(RegFlag::HalfCarry, true);
+    }
+
 }
