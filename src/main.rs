@@ -1,6 +1,8 @@
 use instr::Instr;
 use cpu::Cpu;
 use time::precise_time_ns;
+use std::fs::File;
+use std::io::Read;
 
 extern crate time;
 
@@ -38,6 +40,14 @@ impl AddressSpace {
         let hi = ((data & 0xFF00) >> 8) as u8;
         self.data[addr as usize] = lo;
         self.data[addr as usize + 1] = hi;
+    }
+
+    pub fn load_rom(&mut self, rom: &mut File) -> std::io::Result<()> {
+        // Read in header first
+        try!(rom.read(&mut self.data[0x000..0x150]));
+        // Then read in remaining cart data
+        try!(rom.read(&mut self.data[0x0150..0x8000]));
+        Ok(())
     }
 
 }
