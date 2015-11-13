@@ -6,6 +6,7 @@ authors = ["Matt Monsour <mzmonsour@gmail.com>"]
 
 [dependencies]
 time = "0.1.34"
+getopts = "0.2.14"
 
 [dependencies.glutin]
 git = "https://github.com/tomaka/glutin"

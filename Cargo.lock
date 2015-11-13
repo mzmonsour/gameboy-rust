@@ -2,6 +2,7 @@
 name = "gameboy-rust"
 version = "0.0.1"
 dependencies = [
+ "getopts 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx 0.8.1 (git+http://github.com/gfx-rs/gfx-rs)",
  "glutin 0.4.2 (git+https://github.com/tomaka/glutin)",
  "time 0.1.34 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -122,6 +123,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "winapi 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "getopts"
+version = "0.2.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "gfx"

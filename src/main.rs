@@ -5,6 +5,7 @@ use std::fs::File;
 use std::io::Read;
 
 extern crate time;
+extern crate getopts;
 
 mod instr;
 mod cpu;
