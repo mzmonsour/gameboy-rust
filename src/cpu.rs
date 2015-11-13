@@ -220,24 +220,24 @@ impl Cpu {
             0x08 => self.ram.write_u16(instr.param_u16(0), self.reg.read_u16(Register::SP)),
             // Push instructions
             0xF5 => {
-                let addr = self.reg.read_u16(Register::SP);
+                let addr = self.reg.read_u16(Register::SP) - 2;
                 self.ram.write_u16(addr, self.reg.read_u16(Register::AF));
-                self.reg.write_u16(Register::SP, addr - 2);
+                self.reg.write_u16(Register::SP, addr);
             },
             0xC5 => {
-                let addr = self.reg.read_u16(Register::SP);
+                let addr = self.reg.read_u16(Register::SP) - 2;
                 self.ram.write_u16(addr, self.reg.read_u16(Register::BC));
-                self.reg.write_u16(Register::SP, addr - 2);
+                self.reg.write_u16(Register::SP, addr);
             },
             0xD5 => {
-                let addr = self.reg.read_u16(Register::SP);
+                let addr = self.reg.read_u16(Register::SP) - 2;
                 self.ram.write_u16(addr, self.reg.read_u16(Register::DE));
-                self.reg.write_u16(Register::SP, addr - 2);
+                self.reg.write_u16(Register::SP, addr);
             },
             0xE5 => {
-                let addr = self.reg.read_u16(Register::SP);
+                let addr = self.reg.read_u16(Register::SP) - 2;
                 self.ram.write_u16(addr, self.reg.read_u16(Register::HL));
-                self.reg.write_u16(Register::SP, addr - 2);
+                self.reg.write_u16(Register::SP, addr);
             },
             // Pop instructions
             0xF1 => {
@@ -1326,115 +1326,115 @@ impl Cpu {
             },
             // Call: Jump + push return address
             0xCD => {
-                let sp = self.reg.read_u16(Register::SP);
+                let sp = self.reg.read_u16(Register::SP) - 2;
                 let lo = instr.param(0) as u16;
                 let hi = instr.param(1) as u16;
                 let addr = (hi << 8) | lo;
                 let pc = self.reg.set_pc(addr);
                 self.ram.write_u16(sp, pc);
-                self.reg.write_u16(Register::SP, sp - 2);
+                self.reg.write_u16(Register::SP, sp);
             },
             // Conditional Call
             0xC4 => {
                 if !self.reg.get_flag(RegFlag::Zero) {
-                    let sp = self.reg.read_u16(Register::SP);
+                    let sp = self.reg.read_u16(Register::SP) - 2;
                     let lo = instr.param(0) as u16;
                     let hi = instr.param(1) as u16;
                     let addr = (hi << 8) | lo;
                     let pc = self.reg.set_pc(addr);
                     self.ram.write_u16(sp, pc);
-                    self.reg.write_u16(Register::SP, sp - 2);
+                    self.reg.write_u16(Register::SP, sp);
                 }
             },
             0xCC => {
                 if self.reg.get_flag(RegFlag::Zero) {
-                    let sp = self.reg.read_u16(Register::SP);
+                    let sp = self.reg.read_u16(Register::SP) - 2;
                     let lo = instr.param(0) as u16;
                     let hi = instr.param(1) as u16;
                     let addr = (hi << 8) | lo;
                     let pc = self.reg.set_pc(addr);
                     self.ram.write_u16(sp, pc);
-                    self.reg.write_u16(Register::SP, sp - 2);
+                    self.reg.write_u16(Register::SP, sp);
                 }
             },
             0xD4 => {
                 if !self.reg.get_flag(RegFlag::Carry) {
-                    let sp = self.reg.read_u16(Register::SP);
+                    let sp = self.reg.read_u16(Register::SP) - 2;
                     let lo = instr.param(0) as u16;
                     let hi = instr.param(1) as u16;
                     let addr = (hi << 8) | lo;
                     let pc = self.reg.set_pc(addr);
                     self.ram.write_u16(sp, pc);
-                    self.reg.write_u16(Register::SP, sp - 2);
+                    self.reg.write_u16(Register::SP, sp);
                 }
             },
             0xDC => {
                 if self.reg.get_flag(RegFlag::Carry) {
-                    let sp = self.reg.read_u16(Register::SP);
+                    let sp = self.reg.read_u16(Register::SP) - 2;
                     let lo = instr.param(0) as u16;
                     let hi = instr.param(1) as u16;
                     let addr = (hi << 8) | lo;
                     let pc = self.reg.set_pc(addr);
                     self.ram.write_u16(sp, pc);
-                    self.reg.write_u16(Register::SP, sp - 2);
+                    self.reg.write_u16(Register::SP, sp);
                 }
             },
             // Restart: jump to 0 + n, push return address
             0xC7 => {
-                let sp = self.reg.read_u16(Register::SP);
+                let sp = self.reg.read_u16(Register::SP) - 2;
                 let addr = 0x00;
                 let pc = self.reg.set_pc(addr);
                 self.ram.write_u16(sp, pc);
-                self.reg.write_u16(Register::SP, sp - 2);
+                self.reg.write_u16(Register::SP, sp);
             },
             0xCF => {
-                let sp = self.reg.read_u16(Register::SP);
+                let sp = self.reg.read_u16(Register::SP) - 2;
                 let addr = 0x08;
                 let pc = self.reg.set_pc(addr);
                 self.ram.write_u16(sp, pc);
-                self.reg.write_u16(Register::SP, sp - 2);
+                self.reg.write_u16(Register::SP, sp);
             },
             0xD7 => {
-                let sp = self.reg.read_u16(Register::SP);
+                let sp = self.reg.read_u16(Register::SP) - 2;
                 let addr = 0x10;
                 let pc = self.reg.set_pc(addr);
                 self.ram.write_u16(sp, pc);
-                self.reg.write_u16(Register::SP, sp - 2);
+                self.reg.write_u16(Register::SP, sp);
             },
             0xDF => {
-                let sp = self.reg.read_u16(Register::SP);
+                let sp = self.reg.read_u16(Register::SP) - 2;
                 let addr = 0x18;
                 let pc = self.reg.set_pc(addr);
                 self.ram.write_u16(sp, pc);
-                self.reg.write_u16(Register::SP, sp - 2);
+                self.reg.write_u16(Register::SP, sp);
             },
             0xE7 => {
-                let sp = self.reg.read_u16(Register::SP);
+                let sp = self.reg.read_u16(Register::SP) - 2;
                 let addr = 0x20;
                 let pc = self.reg.set_pc(addr);
                 self.ram.write_u16(sp, pc);
-                self.reg.write_u16(Register::SP, sp - 2);
+                self.reg.write_u16(Register::SP, sp);
             },
             0xEF => {
-                let sp = self.reg.read_u16(Register::SP);
+                let sp = self.reg.read_u16(Register::SP) - 2;
                 let addr = 0x28;
                 let pc = self.reg.set_pc(addr);
                 self.ram.write_u16(sp, pc);
-                self.reg.write_u16(Register::SP, sp - 2);
+                self.reg.write_u16(Register::SP, sp);
             },
             0xF7 => {
-                let sp = self.reg.read_u16(Register::SP);
+                let sp = self.reg.read_u16(Register::SP) - 2;
                 let addr = 0x30;
                 let pc = self.reg.set_pc(addr);
                 self.ram.write_u16(sp, pc);
-                self.reg.write_u16(Register::SP, sp - 2);
+                self.reg.write_u16(Register::SP, sp);
             },
             0xFF => {
-                let sp = self.reg.read_u16(Register::SP);
+                let sp = self.reg.read_u16(Register::SP) - 2;
                 let addr = 0x38;
                 let pc = self.reg.set_pc(addr);
                 self.ram.write_u16(sp, pc);
-                self.reg.write_u16(Register::SP, sp - 2);
+                self.reg.write_u16(Register::SP, sp);
             },
 
             _ => panic!("Instruction not implemented! Opcode {:X}", instr.opcode()),
