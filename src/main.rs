@@ -204,6 +204,18 @@ impl RegData {
         pc
     }
 
+    pub fn set_pc(&mut self, addr: u16) -> u16 {
+        let pc = self.pc;
+        self.pc = addr;
+        pc
+    }
+
+    pub fn add_pc(&mut self, n: i8) -> u16 {
+        let pc = self.pc;
+        self.pc = ((self.pc as i32) + (n as i32)) as u16;
+        pc
+    }
+
 }
 
 fn main() {

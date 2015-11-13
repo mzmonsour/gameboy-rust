@@ -1250,6 +1250,80 @@ impl Cpu {
                 let rot = self.rrot_through(a);
                 self.reg.write(Register::A, rot);
             },
+            // Unconditional Jump from immediate
+            0xC3 => {
+                let lo = instr.param(0) as u16;
+                let hi = instr.param(1) as u16;
+                let addr = (hi << 8) | lo;
+                self.reg.set_pc(addr);
+            },
+            // Conditional Jumps from immediate
+            // Jump not zero
+            0xC2 => {
+                let lo = instr.param(0) as u16;
+                let hi = instr.param(1) as u16;
+                let addr = (hi << 8) | lo;
+                if !self.reg.get_flag(RegFlag::Zero) {
+                    self.reg.set_pc(addr);
+                }
+            },
+            // Jump zero
+            0xCA => {
+                let lo = instr.param(0) as u16;
+                let hi = instr.param(1) as u16;
+                let addr = (hi << 8) | lo;
+                if self.reg.get_flag(RegFlag::Zero) {
+                    self.reg.set_pc(addr);
+                }
+            },
+            // Jump not carry
+            0xD2 => {
+                let lo = instr.param(0) as u16;
+                let hi = instr.param(1) as u16;
+                let addr = (hi << 8) | lo;
+                if !self.reg.get_flag(RegFlag::Carry) {
+                    self.reg.set_pc(addr);
+                }
+            },
+            // Jump carry
+            0xDA => {
+                let lo = instr.param(0) as u16;
+                let hi = instr.param(1) as u16;
+                let addr = (hi << 8) | lo;
+                if self.reg.get_flag(RegFlag::Carry) {
+                    self.reg.set_pc(addr);
+                }
+            },
+            // Unconditional Jump from register
+            0xE9 => {
+                let addr = self.reg.read_u16(Register::HL);
+                self.reg.set_pc(addr);
+            },
+            // Relative Jump
+            0x18 => {
+                self.reg.add_pc(instr.param(0) as i8);
+            },
+            // Relative conditional jump
+            0x20 => {
+                if !self.reg.get_flag(RegFlag::Zero) {
+                    self.reg.add_pc(instr.param(0) as i8);
+                }
+            },
+            0x28 => {
+                if self.reg.get_flag(RegFlag::Zero) {
+                    self.reg.add_pc(instr.param(0) as i8);
+                }
+            },
+            0x30 => {
+                if !self.reg.get_flag(RegFlag::Carry) {
+                    self.reg.add_pc(instr.param(0) as i8);
+                }
+            },
+            0x38 => {
+                if self.reg.get_flag(RegFlag::Carry) {
+                    self.reg.add_pc(instr.param(0) as i8);
+                }
+            },
 
             _ => panic!("Instruction not implemented! Opcode {:X}", instr.opcode()),
         }
