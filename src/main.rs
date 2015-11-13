@@ -11,13 +11,13 @@ mod instr;
 mod cpu;
 
 pub struct AddressSpace {
-    data: [u8; 0xFFFF],
+    data: [u8; 0x10000],
 }
 
 impl AddressSpace {
 
     pub fn new() -> AddressSpace {
-        AddressSpace { data: [0; 0xFFFF] }
+        AddressSpace { data: [0; 0x10000] }
     }
 
     pub fn read(&self, addr: u16) -> u8 {
