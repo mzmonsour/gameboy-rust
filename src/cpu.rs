@@ -1436,6 +1436,54 @@ impl Cpu {
                 self.ram.write_u16(sp, pc);
                 self.reg.write_u16(Register::SP, sp);
             },
+            // Unconditional Return
+            0xC9 => {
+                let sp = self.reg.read_u16(Register::SP);
+                let addr = self.ram.read_u16(sp);
+                self.reg.set_pc(addr);
+                self.reg.write_u16(Register::SP, sp + 2);
+            },
+            // Conditional Return
+            0xC0 => {
+                if !self.reg.get_flag(RegFlag::Zero) {
+                    let sp = self.reg.read_u16(Register::SP);
+                    let addr = self.ram.read_u16(sp);
+                    self.reg.set_pc(addr);
+                    self.reg.write_u16(Register::SP, sp + 2);
+                }
+            },
+            0xC8 => {
+                if self.reg.get_flag(RegFlag::Zero) {
+                    let sp = self.reg.read_u16(Register::SP);
+                    let addr = self.ram.read_u16(sp);
+                    self.reg.set_pc(addr);
+                    self.reg.write_u16(Register::SP, sp + 2);
+                }
+            },
+            0xD0 => {
+                if !self.reg.get_flag(RegFlag::Carry) {
+                    let sp = self.reg.read_u16(Register::SP);
+                    let addr = self.ram.read_u16(sp);
+                    self.reg.set_pc(addr);
+                    self.reg.write_u16(Register::SP, sp + 2);
+                }
+            },
+            0xD8 => {
+                if self.reg.get_flag(RegFlag::Carry) {
+                    let sp = self.reg.read_u16(Register::SP);
+                    let addr = self.ram.read_u16(sp);
+                    self.reg.set_pc(addr);
+                    self.reg.write_u16(Register::SP, sp + 2);
+                }
+            },
+            // Return from interrupt, enable interrupts
+            0xD9 => {
+                let sp = self.reg.read_u16(Register::SP);
+                let addr = self.ram.read_u16(sp);
+                self.reg.set_pc(addr);
+                self.reg.write_u16(Register::SP, sp + 2);
+                self.intlevel = true;
+            },
 
             _ => panic!("Instruction not implemented! Opcode {:X}", instr.opcode()),
         }
