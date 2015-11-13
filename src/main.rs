@@ -6,6 +6,7 @@ use std::io::Read;
 
 extern crate time;
 extern crate getopts;
+extern crate glium;
 
 mod instr;
 mod cpu;
