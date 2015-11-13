@@ -1,5 +1,8 @@
 use instr::Instr;
 use cpu::Cpu;
+use time::precise_time_ns;
+
+extern crate time;
 
 mod instr;
 mod cpu;
@@ -219,5 +222,9 @@ impl RegData {
 }
 
 fn main() {
-    println!("Hello, world!");
+    let cpu = Cpu::new();
+    'main: loop {
+        println!("Nothing to do, breaking out of main");
+        break 'main;
+    }
 }
