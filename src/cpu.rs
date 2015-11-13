@@ -41,7 +41,7 @@ impl Cpu {
         }
     }
 
-    pub fn is_stopped(self) -> bool {
+    pub fn is_stopped(&self) -> bool {
         if let CpuState::Stopped = self.state {
             true
         } else {
