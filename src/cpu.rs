@@ -41,6 +41,10 @@ impl Cpu {
         }
     }
 
+    pub fn get_ram(&mut self) -> &mut AddressSpace {
+        &mut self.ram
+    }
+
     pub fn is_stopped(&self) -> bool {
         if let CpuState::Stopped = self.state {
             true
