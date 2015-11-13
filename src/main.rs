@@ -4,6 +4,12 @@ use time::precise_time_ns;
 use std::fs::File;
 use std::io::Read;
 
+use glium::DisplayBuild;
+use glium::Surface;
+use glium::glutin::Api;
+use glium::glutin::GlRequest;
+use glium::glutin::Event;
+
 extern crate time;
 extern crate getopts;
 extern crate glium;
@@ -234,6 +240,7 @@ impl RegData {
 }
 
 fn main() {
+    //  Gather command line args
     let args: Vec<String> = std::env::args().collect();
     let mut opts = getopts::Options::new();
     let matches = match opts.parse(&args[1..]) {
@@ -246,6 +253,15 @@ fn main() {
         println!("No input ROM");
         return;
     };
+
+    // Build graphics context and window
+    let display = glium::glutin::WindowBuilder::new()
+        .with_title("Gameboy Rust".to_string())
+        .with_gl(GlRequest::Specific(Api::OpenGl, (3, 2)))
+        .build_glium()
+        .unwrap();
+
+    // Do machine initialization
     let mut cpu = Cpu::new();
     {
         let mut ram = cpu.get_ram();
@@ -258,8 +274,22 @@ fn main() {
         };
         ram.load_rom(&mut romfile);
     }
+
+    // Simulate CPU
     'main: loop {
-        println!("Nothing to do, breaking out of main");
-        break 'main;
+        // Collect user input
+        for ev in display.poll_events() {
+            match ev {
+                Event::Closed => {
+                    break 'main;
+                },
+                _ => (),
+            }
+        }
+
+        // Redraw screen
+        let mut target = display.draw();
+        target.clear_color(0.0, 0.0, 0.0, 0.0);
+        target.finish();
     }
 }
