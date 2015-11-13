@@ -6,6 +6,7 @@ use std::io::Read;
 
 use glium::DisplayBuild;
 use glium::Surface;
+use glium::SwapBuffersError;
 use glium::glutin::Api;
 use glium::glutin::GlRequest;
 use glium::glutin::Event;
@@ -272,7 +273,10 @@ fn main() {
                 return;
             }
         };
-        ram.load_rom(&mut romfile);
+        if let Err(e) = ram.load_rom(&mut romfile) {
+            println!("Error loading rom data: {}", e);
+            return;
+        }
     }
 
     // Simulate CPU
@@ -290,6 +294,14 @@ fn main() {
         // Redraw screen
         let mut target = display.draw();
         target.clear_color(0.0, 0.0, 0.0, 0.0);
-        target.finish();
+        match target.finish().err() {
+            Some(SwapBuffersError::ContextLost) => {
+                panic!("OpenGL contetxt lost!");
+            },
+            Some(SwapBuffersError::AlreadySwapped) => {
+                println!("Warning: OpenGL buffer already swapped");
+            },
+            None => (),
+        }
     }
 }
