@@ -6,7 +6,7 @@ use RegData;
 
 use std::num::Wrapping;
 
-static GB_FREQUENCY: u32 = 4194304;
+pub const GB_FREQUENCY: u32 = 4194304;
 
 #[derive(Copy, Clone)]
 pub enum CpuState {

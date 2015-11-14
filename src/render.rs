@@ -22,6 +22,12 @@ pub const LCD_ASPECT: f32   = (LCD_WIDTH as f32) / (LCD_HEIGHT as f32);
 
 pub const BG_SIZE: u32      = 256;
 
+/// Period of the V-Blank in ns. V-Blank frequency is ~59.7 Hz
+pub const VBLANK_PERIOD: u64 = 16_750_419;
+
+/// Duration of each V-Blank in ns. Duration is ~1.1ms
+pub const VBLANK_DURATION: u64 = 1_100_000;
+
 static SIMPLE_VERT: &'static str = r#"
 #version 140
 

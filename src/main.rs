@@ -4,6 +4,8 @@ use time::precise_time_ns;
 use std::fs::File;
 use std::io::Read;
 use std::ops::Index;
+use std::cmp::Ordering;
+use std::collections::BinaryHeap;
 
 use glium::DisplayBuild;
 use glium::Surface;
@@ -258,6 +260,109 @@ impl RegData {
 
 }
 
+#[derive(Copy, Clone)]
+pub enum IntType {
+    VblankStart,
+    VblankEnd,
+}
+
+struct ClockInt {
+    pub int_target: u64,
+    pub int_type: IntType,
+}
+
+impl PartialEq for ClockInt {
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        self.int_target == other.int_target
+    }
+}
+
+impl Eq for ClockInt {}
+
+impl PartialOrd for ClockInt {
+    #[inline]
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        match self.int_target.partial_cmp(&other.int_target) {
+            Some(Ordering::Less) => Some(Ordering::Greater),
+            Some(Ordering::Greater) => Some(Ordering::Less),
+            ord => ord,
+        }
+    }
+}
+
+impl Ord for ClockInt {
+    #[inline]
+    fn cmp(&self, other: &Self) -> Ordering {
+        match self.int_target.cmp(&other.int_target) {
+            Ordering::Less => Ordering::Greater,
+            Ordering::Greater => Ordering::Less,
+            ord => ord,
+        }
+    }
+}
+
+const NS_PER_S: u64 = 1_000_000_000;
+const MS_PER_NS: u64 = 1_000_000;
+
+// 10ms
+const BUSY_WAIT_THRESHOLD: u64 = 10_000_000;
+
+pub struct Clock {
+    freq:       u32,
+    period:     u64,
+    int_heap:   BinaryHeap<ClockInt>,
+}
+
+impl Clock {
+
+    pub fn new(freq: u32) -> Clock {
+        Clock {
+            freq: freq,
+            period: NS_PER_S / (freq as u64),
+            int_heap: BinaryHeap::new(),
+        }
+    }
+
+    pub fn set_interrupt(&mut self, itype: IntType, period: u64) {
+        let start = precise_time_ns();
+        let int = ClockInt {
+            int_type: itype,
+            int_target: start + period,
+        };
+        self.int_heap.push(int);
+    }
+
+    pub fn wait_cycles(&mut self, n: u32) -> Option<IntType> {
+        let start = precise_time_ns();
+        let real_wait = self.period * (n as u64);
+        let real_target = real_wait + start;
+        let (target, result) = if let Some(interrupt) = self.int_heap.pop() {
+            if real_target > interrupt.int_target {
+                (interrupt.int_target, Some(interrupt.int_type))
+            } else {
+                self.int_heap.push(interrupt);
+                (real_target, None)
+            }
+        } else {
+            (real_target, None)
+        };
+        let mut curtime = start;
+        if target > start && target - start > BUSY_WAIT_THRESHOLD {
+            std::thread::sleep_ms(((target - start) * MS_PER_NS) as u32);
+            return result;
+        } else {
+            loop {
+                if curtime >= target {
+                    return result;
+                }
+                curtime = precise_time_ns();
+            }
+        }
+    }
+
+}
+
 fn main() {
     //  Gather command line args
     let args: Vec<String> = std::env::args().collect();
@@ -306,6 +411,10 @@ fn main() {
         render::calculate_viewport(width, height)
     };
 
+    // Initialize virtual hardware clocks
+    let mut clock = Clock::new(cpu::GB_FREQUENCY);
+    clock.set_interrupt(IntType::VblankStart, render::VBLANK_PERIOD);
+
     // Simulate CPU
     'main: loop {
         // Collect user input
@@ -320,6 +429,24 @@ fn main() {
                     viewport = render::calculate_viewport(width, height);
                 },
                 _ => (),
+            }
+        }
+
+        // Simulate CPU and hardware timers
+        'sim: loop  {
+            if let Some(int) = clock.wait_cycles(cpu.do_instr()) {
+                // Handle timer interrupt
+                match int {
+                    // Interrupt at the start of the vblank period
+                    IntType::VblankStart => {
+                        clock.set_interrupt(IntType::VblankStart, render::VBLANK_PERIOD);
+                        clock.set_interrupt(IntType::VblankEnd, render::VBLANK_DURATION);
+                    }
+                    // At the end, collect data from VRAM and render it
+                    IntType::VblankEnd => {
+                        break 'sim;
+                    }
+                }
             }
         }
 
