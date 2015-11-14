@@ -7,9 +7,14 @@ use glium::Frame;
 use glium::Rect;
 use glium::index::PrimitiveType;
 
+use nalgebra::Mat4;
+use nalgebra::OrthoMat3;
+
 pub const LCD_WIDTH: u32    = 160;
 pub const LCD_HEIGHT: u32   = 144;
 pub const LCD_ASPECT: f32   = (LCD_WIDTH as f32) / (LCD_HEIGHT as f32);
+
+pub const BG_SIZE: u32      = 256;
 
 static SIMPLE_VERT: &'static str = r#"
 #version 140
@@ -18,9 +23,11 @@ in vec2 coord;
 
 out vec2 tex_coord;
 
+uniform mat4 projection;
+
 void main() {
     tex_coord = coord;
-    gl_Position = vec4(coord, 0.0, 1.0);
+    gl_Position = projection * vec4(coord, 0.0, 1.0);
 }
 "#;
 
@@ -64,6 +71,7 @@ pub struct GbDisplay {
     simple_surface_idx: IndexBuffer<u32>,
     color_prog: Program,
     tex_prog: Program,
+    projection: Mat4<f32>,
 }
 
 impl GbDisplay {
@@ -71,16 +79,16 @@ impl GbDisplay {
     pub fn new<F>(display: &F) -> GbDisplay where F: ::glium::backend::Facade {
         let (vertbuf, idxbuf) = {
             let topleft = Vertex {
-                coord: [-1.0, 1.0],
+                coord: [0.0, 0.0],
             };
             let topright = Vertex {
-                coord: [1.0, 1.0],
+                coord: [BG_SIZE as f32, 0.0],
             };
             let bottomright = Vertex {
-                coord: [1.0, -1.0],
+                coord: [BG_SIZE as f32, BG_SIZE as f32],
             };
             let bottomleft = Vertex {
-                coord: [-1.0, -1.0],
+                coord: [0.0, BG_SIZE as f32],
             };
             let vertices = vec![topleft, topright, bottomright, bottomleft];
             let indices = vec![0, 1, 3, 1, 2, 3];
@@ -91,11 +99,23 @@ impl GbDisplay {
         };
         let colorprog = Program::from_source(display, SIMPLE_VERT, COLOR_FRAG, None).unwrap();
         let texprog = Program::from_source(display, SIMPLE_VERT, TEXTURE_FRAG, None).unwrap();
+        let projection = {
+            let orthomat = OrthoMat3::new(LCD_WIDTH as f32, LCD_HEIGHT as f32, 0.0, 1.0);
+            // Reverse y coord, and translate origin to top left
+            let adjust = Mat4::new(
+                1.0f32, 0.0, 0.0, (LCD_WIDTH as f32) / -2.0,
+                0.0, -1.0, 0.0, (LCD_HEIGHT as f32) / 2.0,
+                0.0, 0.0, 1.0, 0.0,
+                0.0, 0.0, 0.0, 1.0
+                );
+            orthomat.to_mat() * adjust
+        };
         GbDisplay {
             simple_surface: vertbuf,
             simple_surface_idx: idxbuf,
             color_prog: colorprog,
             tex_prog: texprog,
+            projection: projection,
         }
     }
 
@@ -105,6 +125,7 @@ impl GbDisplay {
             .. Default::default()
         };
         let uniforms = uniform! {
+            projection: self.projection,
             color: color,
         };
         frame.draw(&self.simple_surface, &self.simple_surface_idx, &self.color_prog, &uniforms, &params);
