@@ -326,7 +326,7 @@ fn main() {
         // Redraw screen
         let mut target = display.draw();
         target.clear_color(0.0, 0.0, 0.0, 0.0);
-        lcd.clear_viewport(&mut target, viewport, (1.0, 1.0, 1.0, 1.0));
+        lcd.clear_viewport(&mut target, viewport, (1.0, 1.0, 1.0, 0.0));
         match target.finish().err() {
             Some(SwapBuffersError::ContextLost) => {
                 panic!("OpenGL contetxt lost!");
