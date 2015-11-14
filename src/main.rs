@@ -3,6 +3,7 @@ use cpu::Cpu;
 use time::precise_time_ns;
 use std::fs::File;
 use std::io::Read;
+use std::ops::Index;
 
 use glium::DisplayBuild;
 use glium::Surface;
@@ -20,6 +21,12 @@ extern crate nalgebra;
 mod instr;
 mod cpu;
 mod render;
+
+#[derive(Copy, Clone)]
+pub enum MemSection {
+    Vram,
+    RomBank0,
+}
 
 pub struct AddressSpace {
     data: [u8; 0x10000],
@@ -62,6 +69,14 @@ impl AddressSpace {
         Ok(())
     }
 
+}
+
+impl Index<u16> for AddressSpace {
+    type Output = u8;
+
+    fn index(&self, idx: u16) -> &u8 {
+        &self.data[idx as usize]
+    }
 }
 
 #[derive(Copy, Clone)]
