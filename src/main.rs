@@ -13,10 +13,12 @@ use glium::glutin::Event;
 
 extern crate time;
 extern crate getopts;
+#[macro_use]
 extern crate glium;
 
 mod instr;
 mod cpu;
+mod render;
 
 pub struct AddressSpace {
     data: [u8; 0x10000],
@@ -279,6 +281,15 @@ fn main() {
         }
     }
 
+    // Initialize virtual LCD
+    let mut lcd = render::GbDisplay::new(&display);
+
+    let mut viewport = {
+        let window = display.get_window();
+        let (width, height) = window.unwrap().get_inner_size_pixels().unwrap();
+        render::calculate_viewport(width, height)
+    };
+
     // Simulate CPU
     'main: loop {
         // Collect user input
@@ -287,6 +298,11 @@ fn main() {
                 Event::Closed => {
                     break 'main;
                 },
+                Event::Resized(..) => {
+                    let window = display.get_window();
+                    let (width, height) = window.unwrap().get_inner_size_pixels().unwrap();
+                    viewport = render::calculate_viewport(width, height);
+                },
                 _ => (),
             }
         }
@@ -294,6 +310,7 @@ fn main() {
         // Redraw screen
         let mut target = display.draw();
         target.clear_color(0.0, 0.0, 0.0, 0.0);
+        lcd.clear_viewport(&mut target, viewport, (1.0, 1.0, 1.0, 1.0));
         match target.finish().err() {
             Some(SwapBuffersError::ContextLost) => {
                 panic!("OpenGL contetxt lost!");
