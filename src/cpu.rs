@@ -184,25 +184,29 @@ impl Cpu {
             0x3A => {
                 let addr = self.reg.read_u16(Register::HL);
                 self.reg.write(Register::A, self.ram.read(addr));
-                self.reg.write_u16(Register::HL, addr - 1);
+                let Wrapping(res) = Wrapping(addr) - Wrapping(1);
+                self.reg.write_u16(Register::HL, res);
             },
             // Write to (HL) and decrement
             0x32 => {
                 let addr = self.reg.read_u16(Register::HL);
                 self.ram.write(addr, self.reg.read(Register::A));
-                self.reg.write_u16(Register::HL, addr - 1);
+                let Wrapping(res) = Wrapping(addr) - Wrapping(1);
+                self.reg.write_u16(Register::HL, res);
             },
             // Load from (HL) and increment
             0x2A => {
                 let addr = self.reg.read_u16(Register::HL);
                 self.reg.write(Register::A, self.ram.read(addr));
-                self.reg.write_u16(Register::HL, addr + 1);
+                let Wrapping(res) = Wrapping(addr) + Wrapping(1);
+                self.reg.write_u16(Register::HL, res);
             },
             // Write to (HL) and increment
             0x22 => {
                 let addr = self.reg.read_u16(Register::HL);
                 self.ram.write(addr, self.reg.read(Register::A));
-                self.reg.write_u16(Register::HL, addr + 1);
+                let Wrapping(res) = Wrapping(addr) + Wrapping(1);
+                self.reg.write_u16(Register::HL, res);
             },
             // Write to ($FF00 + immediate)
             0xE0 => self.ram.write(0xFF00 + instr.param(0) as u16, self.reg.read(Register::A)),
