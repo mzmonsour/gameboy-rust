@@ -12,6 +12,26 @@ pub struct AddressSpace {
     data: [u8; 0x10000],
 }
 
+pub const IOREG_P1:     u16 = 0xFF00;
+pub const IOREG_SB:     u16 = 0xFF01;
+pub const IOREG_DIV:    u16 = 0xFF04;
+pub const IOREG_TIMA:   u16 = 0xFF05;
+pub const IOREG_TMA:    u16 = 0xFF06;
+pub const IOREG_TAC:    u16 = 0xFF07;
+pub const IOREG_IF:     u16 = 0xFF0F;
+pub const IOREG_LCDC:   u16 = 0xFF40;
+pub const IOREG_STAT:   u16 = 0xFF41;
+pub const IOREG_SCY:    u16 = 0xFF42;
+pub const IOREG_SCX:    u16 = 0xFF43;
+pub const IOREG_LY:     u16 = 0xFF44;
+pub const IOREG_LYC:    u16 = 0xFF45;
+pub const IOREG_BGP:    u16 = 0xFF47;
+pub const IOREG_OBP0:   u16 = 0xFF48;
+pub const IOREG_OBP1:   u16 = 0xFF49;
+pub const IOREG_WY:     u16 = 0xFF4A;
+pub const IOREG_WX:     u16 = 0xFF4B;
+pub const IOREG_IE:     u16 = 0xFFFF;
+
 impl AddressSpace {
 
     pub fn new() -> AddressSpace {
