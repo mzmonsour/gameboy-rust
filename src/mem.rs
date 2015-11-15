@@ -224,7 +224,7 @@ impl RegData {
     }
 
     pub fn write_u16(&mut self, reg: Register, data: u16) {
-        let (hi, lo) = ((data & 0xFF00 >> 8) as u8, (data & 0xFF) as u8);
+        let (hi, lo) = (((data & 0xFF00) >> 8) as u8, (data & 0xFF) as u8);
         match reg {
             Register::AF => {
                 self.a = hi;
