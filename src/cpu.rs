@@ -1693,10 +1693,21 @@ impl Cpu {
 
     pub fn restart(&mut self, addr: u16) {
         println!("Warning: RST {:X}h only partially implemented", addr);
+
+        // Push current PC onto stack, and "jump" to addr
         let sp = self.reg.read_u16(Register::SP) - 2;
-        // Just reset to ROM entry point
-        let pc = self.reg.set_pc(0x100);
+        let pc = self.reg.set_pc(addr);
         self.ram.write_u16(sp, pc);
         self.reg.write_u16(Register::SP, sp);
+
+        // Do system initialization
+        self.init();
+    }
+
+    pub fn init(&mut self) {
+        // Write default LCDC
+        self.ram.write(::mem::IOREG_LCDC, 0x91);
+        // Make sure we start at the ROM entry point
+        self.reg.set_pc(0x100);
     }
 }

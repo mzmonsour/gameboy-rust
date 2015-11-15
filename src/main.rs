@@ -151,6 +151,7 @@ fn main() {
 
     // Do machine initialization
     let mut cpu = Cpu::new();
+    cpu.init();
     {
         let mut ram = cpu.get_ram();
         let mut romfile = match File::open(std::path::Path::new(&input)) {
