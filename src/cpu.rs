@@ -1428,60 +1428,28 @@ impl Cpu {
             },
             // Restart: jump to 0 + n, push return address
             0xC7 => {
-                let sp = self.reg.read_u16(Register::SP) - 2;
-                let addr = 0x00;
-                let pc = self.reg.set_pc(addr);
-                self.ram.write_u16(sp, pc);
-                self.reg.write_u16(Register::SP, sp);
+                self.restart(0x00);
             },
             0xCF => {
-                let sp = self.reg.read_u16(Register::SP) - 2;
-                let addr = 0x08;
-                let pc = self.reg.set_pc(addr);
-                self.ram.write_u16(sp, pc);
-                self.reg.write_u16(Register::SP, sp);
+                self.restart(0x08);
             },
             0xD7 => {
-                let sp = self.reg.read_u16(Register::SP) - 2;
-                let addr = 0x10;
-                let pc = self.reg.set_pc(addr);
-                self.ram.write_u16(sp, pc);
-                self.reg.write_u16(Register::SP, sp);
+                self.restart(0x10);
             },
             0xDF => {
-                let sp = self.reg.read_u16(Register::SP) - 2;
-                let addr = 0x18;
-                let pc = self.reg.set_pc(addr);
-                self.ram.write_u16(sp, pc);
-                self.reg.write_u16(Register::SP, sp);
+                self.restart(0x18);
             },
             0xE7 => {
-                let sp = self.reg.read_u16(Register::SP) - 2;
-                let addr = 0x20;
-                let pc = self.reg.set_pc(addr);
-                self.ram.write_u16(sp, pc);
-                self.reg.write_u16(Register::SP, sp);
+                self.restart(0x20);
             },
             0xEF => {
-                let sp = self.reg.read_u16(Register::SP) - 2;
-                let addr = 0x28;
-                let pc = self.reg.set_pc(addr);
-                self.ram.write_u16(sp, pc);
-                self.reg.write_u16(Register::SP, sp);
+                self.restart(0x28);
             },
             0xF7 => {
-                let sp = self.reg.read_u16(Register::SP) - 2;
-                let addr = 0x30;
-                let pc = self.reg.set_pc(addr);
-                self.ram.write_u16(sp, pc);
-                self.reg.write_u16(Register::SP, sp);
+                self.restart(0x30);
             },
             0xFF => {
-                let sp = self.reg.read_u16(Register::SP) - 2;
-                let addr = 0x38;
-                let pc = self.reg.set_pc(addr);
-                self.ram.write_u16(sp, pc);
-                self.reg.write_u16(Register::SP, sp);
+                self.restart(0x38);
             },
             // Unconditional Return
             0xC9 => {
@@ -1723,4 +1691,12 @@ impl Cpu {
         self.reg.set_flag(RegFlag::HalfCarry, true);
     }
 
+    pub fn restart(&mut self, addr: u16) {
+        println!("Warning: RST {:X}h only partially implemented", addr);
+        let sp = self.reg.read_u16(Register::SP) - 2;
+        // Just reset to ROM entry point
+        let pc = self.reg.set_pc(0x100);
+        self.ram.write_u16(sp, pc);
+        self.reg.write_u16(Register::SP, sp);
+    }
 }
