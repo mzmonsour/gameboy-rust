@@ -15,6 +15,18 @@ pub enum CpuState {
     Stopped, // No instructions are run, reset on user input
 }
 
+#[derive(Copy, Clone)]
+pub enum CpuInterrupt {
+    Vblank,
+    Lcdc,
+    TimerOverflow,
+    SerialIoComplete,
+    TransitionP10,
+    TransitionP11,
+    TransitionP12,
+    TransitionP13,
+}
+
 pub struct Cpu {
     reg: RegData,
     ram: AddressSpace,
@@ -50,6 +62,33 @@ impl Cpu {
             true
         } else {
             false
+        }
+    }
+
+    pub fn interrupt(&mut self, int: CpuInterrupt) {
+        let ie_flag = self.ram[0xFFFF];
+        let (ie_mask, int_addr) = match int {
+            CpuInterrupt::Vblank => {
+                self.ram.write(0xFF0F, 0x01);
+                (0x01, 0x0000)
+            },
+            _ => {
+                println!("Interrupt not implemented");
+                (0x00, 0x0000)
+            },
+        };
+        if self.intlevel && (ie_flag & ie_mask) != 0 {
+            // Interrupt routines not emulated currently
+            // Just reset the CPU state to running
+            //
+            //self.intlevel = false;
+            //let pc = self.reg.set_pc(int_addr);
+            //let sp = self.reg.read_u16(Register::SP) - 2;
+            //self.ram.write_u16(sp, pc);
+            //self.reg.write_u16(Register::SP, sp);
+            if let CpuState::Halted = self.state {
+                self.state = CpuState::Running;
+            }
         }
     }
 

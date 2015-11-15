@@ -1,5 +1,6 @@
 use instr::Instr;
 use cpu::Cpu;
+use cpu::CpuInterrupt;
 use time::precise_time_ns;
 use std::fs::File;
 use std::io::Read;
@@ -441,6 +442,7 @@ fn main() {
                     IntType::VblankStart => {
                         clock.set_interrupt(IntType::VblankStart, render::VBLANK_PERIOD);
                         clock.set_interrupt(IntType::VblankEnd, render::VBLANK_DURATION);
+                        cpu.interrupt(CpuInterrupt::Vblank);
                     }
                     // At the end, collect data from VRAM and render it
                     IntType::VblankEnd => {
