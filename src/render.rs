@@ -173,8 +173,8 @@ impl GbDisplay {
         let lcd_on                  = (lcdc_reg & 0x80) != 0;
         let win_map_addr            = if (lcdc_reg & 0x40) == 0 { 0x9800 } else { 0x9C00 };
         let win_on                  = (lcdc_reg & 0x20) != 0;
-        let (tile_data, signed_idx) = if (lcdc_reg & 0x10) == 0 { (0x8800, false) }
-                                        else { (0x8000, true) };
+        let (tile_data, signed_idx) = if (lcdc_reg & 0x10) == 0 { (0x9000, true) }
+                                        else { (0x8000, false) };
         let bg_map_addr             = if (lcdc_reg & 0x08) == 0 { 0x9800 } else { 0x9C00 };
         let sprite_height           = if (lcdc_reg & 0x04) == 0 { 8 } else { 16 };
         let sprite_on               = (lcdc_reg & 0x02) != 0;
