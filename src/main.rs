@@ -46,7 +46,9 @@ impl AddressSpace {
     }
 
     pub fn read_u16(&self, addr: u16) -> u16 {
-        self.data[addr as usize] as u16 | ((self.data[addr as usize + 1] as u16) << 8)
+        let lo = self.read(addr) as u16;
+        let hi = (self.read(addr + 1) as u16) << 8;
+        lo | hi
     }
 
     pub fn read_slice(&self, addr: u16, bytes: u16) -> &[u8] {
@@ -54,14 +56,32 @@ impl AddressSpace {
     }
 
     pub fn write(&mut self, addr: u16, data: u8) {
-        self.data[addr as usize] = data;
+        match addr {
+            // ROM Banks, read only
+            0x0000...0x7FFF => (),
+            // Switchable RAM bank
+            // TODO: Make RAM switchable
+            0xA000...0xBFFF => {
+                self.data[addr as usize] = data;
+            },
+            // Internal RAM echo
+            0xE000...0xFDFF => {
+                let adj_addr = addr - 0x2000;
+                self.data[adj_addr as usize] = data;
+            },
+            // TODO: I/O ports
+            // No special write rules
+            _ => {
+                self.data[addr as usize] = data;
+            },
+        }
     }
 
     pub fn write_u16(&mut self, addr: u16, data: u16) {
         let lo = (data & 0xFF) as u8;
         let hi = ((data & 0xFF00) >> 8) as u8;
-        self.data[addr as usize] = lo;
-        self.data[addr as usize + 1] = hi;
+        self.write(addr, lo);
+        self.write(addr + 1, hi);
     }
 
     pub fn load_rom(&mut self, rom: &mut File) -> std::io::Result<()> {
