@@ -1707,6 +1707,6 @@ impl Cpu {
         // Write default LCDC
         self.ram.write(::mem::IOREG_LCDC, 0x91);
         // Make sure we start at the ROM entry point
-        self.reg.set_pc(0x100);
+        self.reg.set_pc(0x000);
     }
 }
