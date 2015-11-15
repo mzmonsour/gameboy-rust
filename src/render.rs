@@ -230,20 +230,45 @@ impl GbDisplay {
 }
 
 const PALETTE_COLOR0: (f32, f32, f32, f32) = (1.0, 1.0, 1.0, 1.0);
-const PALETTE_COLOR1: (f32, f32, f32, f32) = (0.25, 0.25, 0.25, 0.25);
-const PALETTE_COLOR2: (f32, f32, f32, f32) = (0.75, 0.75, 0.75, 0.75);
-const PALETTE_COLOR3: (f32, f32, f32, f32) = (0.0, 0.0, 0.0, 0.0);
+const PALETTE_COLOR1: (f32, f32, f32, f32) = (0.25, 0.25, 0.25, 1.0);
+const PALETTE_COLOR2: (f32, f32, f32, f32) = (0.75, 0.75, 0.75, 1.0);
+const PALETTE_COLOR3: (f32, f32, f32, f32) = (0.0, 0.0, 0.0, 1.0);
+const PALETTE_COLORTEST: (f32, f32, f32, f32) = (1.0, 0.5, 0.75, 1.0);
 
 fn build_palette(bits: u8) -> [(f32, f32, f32, f32); 4] {
-    let c0 = bits & 0x03;
-    let c1 = bits & 0x0C >> 2;
-    let c2 = bits & 0x30 >> 4;
-    let c3 = bits & 0xC0 >> 6;
+    let c0 = (bits & 0x03);
+    let c1 = (bits & 0x0C) >> 2;
+    let c2 = (bits & 0x30) >> 4;
+    let c3 = (bits & 0xC0) >> 6;
     let mut colors = [PALETTE_COLOR0; 4];
-    colors[c0 as usize] = PALETTE_COLOR0;
-    colors[c1 as usize] = PALETTE_COLOR1;
-    colors[c2 as usize] = PALETTE_COLOR2;
-    colors[c3 as usize] = PALETTE_COLOR3;
+    colors[0] = match c0 {
+        0 => PALETTE_COLOR0,
+        1 => PALETTE_COLOR1,
+        2 => PALETTE_COLOR2,
+        3 => PALETTE_COLOR3,
+        _ => PALETTE_COLORTEST,
+    };
+    colors[1] = match c1 {
+        0 => PALETTE_COLOR0,
+        1 => PALETTE_COLOR1,
+        2 => PALETTE_COLOR2,
+        3 => PALETTE_COLOR3,
+        _ => PALETTE_COLORTEST,
+    };
+    colors[2] = match c2 {
+        0 => PALETTE_COLOR0,
+        1 => PALETTE_COLOR1,
+        2 => PALETTE_COLOR2,
+        3 => PALETTE_COLOR3,
+        _ => PALETTE_COLORTEST,
+    };
+    colors[3] = match c3 {
+        0 => PALETTE_COLOR0,
+        1 => PALETTE_COLOR1,
+        2 => PALETTE_COLOR2,
+        3 => PALETTE_COLOR3,
+        _ => PALETTE_COLORTEST,
+    };
     colors
 }
 
