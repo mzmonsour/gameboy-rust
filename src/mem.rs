@@ -1,5 +1,7 @@
 use std::fs::File;
 use std::io::Read;
+use std::io::Seek;
+use std::io::SeekFrom;
 use std::ops::Index;
 use std::ops::IndexMut;
 
@@ -98,6 +100,7 @@ impl AddressSpace {
 
     pub fn load_rom(&mut self, rom: &mut File) -> ::std::io::Result<()> {
         // Read in header first
+        try!(rom.seek(SeekFrom::Start(0x100)));
         try!(rom.read(&mut self.data[0x100..0x150]));
         // Then read in remaining cart data
         try!(rom.read(&mut self.data[0x0150..0x8000]));
