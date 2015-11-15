@@ -154,6 +154,13 @@ fn main() {
     cpu.init();
     {
         let mut ram = cpu.get_ram();
+        let mut biosfile = match File::open(std::path::Path::new("rom/bios.bin")) {
+            Ok(f) => { f },
+            Err(e) => {
+                println!("Error opening bios file");
+                return;
+            },
+        };
         let mut romfile = match File::open(std::path::Path::new(&input)) {
             Ok(f) => { f },
             Err(e) => {
@@ -161,6 +168,10 @@ fn main() {
                 return;
             }
         };
+        if let Err(e) = ram.load_bios(&mut biosfile) {
+            println!("Error loading bios data: {}", e);
+            return;
+        }
         if let Err(e) = ram.load_rom(&mut romfile) {
             println!("Error loading rom data: {}", e);
             return;

@@ -91,9 +91,14 @@ impl AddressSpace {
         self.write(addr + 1, hi);
     }
 
+    pub fn load_bios(&mut self, bios: &mut File) -> ::std::io::Result<()> {
+        try!(bios.read(&mut self.data[0x000..0x100]));
+        Ok(())
+    }
+
     pub fn load_rom(&mut self, rom: &mut File) -> ::std::io::Result<()> {
         // Read in header first
-        try!(rom.read(&mut self.data[0x000..0x150]));
+        try!(rom.read(&mut self.data[0x100..0x150]));
         // Then read in remaining cart data
         try!(rom.read(&mut self.data[0x0150..0x8000]));
         Ok(())

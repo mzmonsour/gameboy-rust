@@ -1696,14 +1696,11 @@ impl Cpu {
         println!("Warning: RST {:X}h only partially implemented", addr);
         println!("PC before RST: {:X}", self.reg.get_pc());
 
-        // Push current PC onto stack, and "jump" to addr
+        // Push current PC onto stack, and jump to addr
         let sp = self.reg.read_u16(Register::SP) - 2;
         let pc = self.reg.set_pc(addr);
         self.ram.write_u16(sp, pc);
         self.reg.write_u16(Register::SP, sp);
-
-        // Do system initialization
-        self.init();
     }
 
     pub fn init(&mut self) {
