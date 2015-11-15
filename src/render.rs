@@ -32,6 +32,7 @@ static SIMPLE_VERT: &'static str = r#"
 #version 140
 
 in vec2 coord;
+in vec2 tcoord;
 
 out vec2 tex_coord;
 
@@ -39,7 +40,7 @@ uniform mat4 projection;
 uniform vec2 translate;
 
 void main() {
-    tex_coord = coord;
+    tex_coord = tcoord;
     gl_Position = projection * vec4(coord.x + translate.x, coord.y + translate.y, 0.0, 1.0);
 }
 "#;
@@ -76,9 +77,10 @@ void main() {
 #[derive(Copy, Clone)]
 struct Vertex {
     coord: [f32; 2],
+    tcoord: [f32; 2],
 }
 
-implement_vertex!(Vertex, coord);
+implement_vertex!(Vertex, coord, tcoord);
 
 pub struct GbDisplay {
     simple_surface: VertexBuffer<Vertex>,
@@ -95,15 +97,19 @@ impl GbDisplay {
         let (vertbuf, idxbuf) = {
             let topleft = Vertex {
                 coord: [0.0, 0.0],
+                tcoord: [0.0, 1.0],
             };
             let topright = Vertex {
                 coord: [BG_SIZE as f32, 0.0],
+                tcoord: [1.0, 1.0],
             };
             let bottomright = Vertex {
                 coord: [BG_SIZE as f32, BG_SIZE as f32],
+                tcoord: [1.0, 0.0],
             };
             let bottomleft = Vertex {
                 coord: [0.0, BG_SIZE as f32],
+                tcoord: [0.0, 0.0],
             };
             let vertices = vec![topleft, topright, bottomright, bottomleft];
             let indices = vec![0, 1, 3, 1, 2, 3];
