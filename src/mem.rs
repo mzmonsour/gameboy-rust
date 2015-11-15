@@ -1,6 +1,7 @@
 use std::fs::File;
 use std::io::Read;
 use std::ops::Index;
+use std::ops::IndexMut;
 
 #[derive(Copy, Clone)]
 pub enum MemSection {
@@ -105,6 +106,12 @@ impl Index<u16> for AddressSpace {
 
     fn index(&self, idx: u16) -> &u8 {
         &self.data[idx as usize]
+    }
+}
+
+impl IndexMut<u16> for AddressSpace {
+    fn index_mut(&mut self, idx: u16) -> &mut u8 {
+        &mut self.data[idx as usize]
     }
 }
 

@@ -26,8 +26,8 @@ mod render;
 
 #[derive(Copy, Clone)]
 pub enum IntType {
-    VblankStart,
-    VblankEnd,
+    Vblank,
+    Hblank,
 }
 
 struct ClockInt {
@@ -178,7 +178,7 @@ fn main() {
 
     // Initialize virtual hardware clocks
     let mut clock = Clock::new(cpu::GB_FREQUENCY);
-    clock.set_interrupt(IntType::VblankStart, render::VBLANK_PERIOD);
+    clock.set_interrupt(IntType::Hblank, render::VBLANK_PERIOD);
 
     // Simulate CPU
     'main: loop {
@@ -203,14 +203,23 @@ fn main() {
                 // Handle timer interrupt
                 match int {
                     // Interrupt at the start of the vblank period
-                    IntType::VblankStart => {
-                        clock.set_interrupt(IntType::VblankStart, render::VBLANK_PERIOD);
-                        clock.set_interrupt(IntType::VblankEnd, render::VBLANK_DURATION);
+                    IntType::Vblank => {
+                        clock.set_interrupt(IntType::Vblank, render::VBLANK_PERIOD);
                         cpu.interrupt(CpuInterrupt::Vblank);
+                        let ly = lcd.set_ly_vblank();
+                        let ram = cpu.get_ram();
+                        ram[mem::IOREG_LY] = ly;
                     }
-                    // At the end, collect data from VRAM and render it
-                    IntType::VblankEnd => {
-                        break 'sim;
+                    // ~10 H-Blanks occur after the V-Blank starts
+                    IntType::Hblank => {
+                        clock.set_interrupt(IntType::Hblank, render::HBLANK_PERIOD);
+                        let ly = lcd.inc_ly_counter();
+                        let ram = cpu.get_ram();
+                        ram[mem::IOREG_LY] = ly;
+                        // At the end, collect data from VRAM and render it
+                        if ly == 0 {
+                            break 'sim;
+                        }
                     }
                 }
             }

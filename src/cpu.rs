@@ -1,4 +1,5 @@
 use instr::Instr;
+use mem;
 use mem::AddressSpace;
 use mem::Register;
 use mem::RegFlag;
@@ -66,10 +67,10 @@ impl Cpu {
     }
 
     pub fn interrupt(&mut self, int: CpuInterrupt) {
-        let ie_flag = self.ram[0xFFFF];
+        let ie_flag = self.ram[mem::IOREG_IE];
         let (ie_mask, int_addr) = match int {
             CpuInterrupt::Vblank => {
-                self.ram.write(0xFF0F, 0x01);
+                self.ram.write(mem::IOREG_IF, 0x01);
                 (0x01, 0x0000)
             },
             _ => {

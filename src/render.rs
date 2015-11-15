@@ -25,8 +25,8 @@ pub const BG_SIZE: u32      = 256;
 /// Period of the V-Blank in ns. V-Blank frequency is ~59.7 Hz
 pub const VBLANK_PERIOD: u64 = 16_750_419;
 
-/// Duration of each V-Blank in ns. Duration is ~1.1ms
-pub const VBLANK_DURATION: u64 = 1_100_000;
+/// Period of the H-Blank in ns. H-Blank frequency is ~9198 Hz
+pub const HBLANK_PERIOD: u64 = 108_719;
 
 static SIMPLE_VERT: &'static str = r#"
 #version 140
@@ -86,6 +86,7 @@ pub struct GbDisplay {
     color_prog: Program,
     tex_prog: Program,
     projection: Mat4<f32>,
+    ly_counter: u8,
 }
 
 impl GbDisplay {
@@ -130,7 +131,22 @@ impl GbDisplay {
             color_prog: colorprog,
             tex_prog: texprog,
             projection: projection,
+            ly_counter: 0,
         }
+    }
+
+    pub fn inc_ly_counter(&mut self) -> u8 {
+        if self.ly_counter >= 153 {
+            self.ly_counter = 0;
+        } else {
+            self.ly_counter += 1;
+        }
+        self.ly_counter
+    }
+
+    pub fn set_ly_vblank(&mut self) -> u8 {
+        self.ly_counter = 144;
+        self.ly_counter
     }
 
     pub fn clear_viewport(&mut self, frame: &mut Frame, view: Rect, color: (f32, f32, f32, f32)) {
