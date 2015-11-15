@@ -13,8 +13,8 @@ use glium::backend::Facade;
 use nalgebra::Mat4;
 use nalgebra::OrthoMat3;
 
-use MemSection;
-use AddressSpace;
+use mem::MemSection;
+use mem::AddressSpace;
 
 pub const LCD_WIDTH: u32    = 160;
 pub const LCD_HEIGHT: u32   = 144;

@@ -1,8 +1,8 @@
 use instr::Instr;
-use AddressSpace;
-use Register;
-use RegFlag;
-use RegData;
+use mem::AddressSpace;
+use mem::Register;
+use mem::RegFlag;
+use mem::RegData;
 
 use std::num::Wrapping;
 

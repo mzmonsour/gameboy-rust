@@ -1,5 +1,5 @@
-use RegData;
-use AddressSpace;
+use mem::RegData;
+use mem::AddressSpace;
 
 pub struct Instr {
     opcode: u8,
