@@ -236,7 +236,7 @@ impl RegData {
             },
             Register::DE => {
                 self.d = hi;
-                self.c = lo;
+                self.e = lo;
             },
             Register::HL => {
                 self.h = hi;
