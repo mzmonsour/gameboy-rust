@@ -1694,6 +1694,7 @@ impl Cpu {
 
     pub fn restart(&mut self, addr: u16) {
         println!("Warning: RST {:X}h only partially implemented", addr);
+        println!("PC before RST: {:X}", self.reg.get_pc());
 
         // Push current PC onto stack, and "jump" to addr
         let sp = self.reg.read_u16(Register::SP) - 2;

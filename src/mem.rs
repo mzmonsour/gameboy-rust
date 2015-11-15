@@ -292,4 +292,8 @@ impl RegData {
         pc
     }
 
+    pub fn get_pc(&self) -> u16 {
+        self.pc
+    }
+
 }
