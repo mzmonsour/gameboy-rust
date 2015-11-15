@@ -53,24 +53,33 @@ impl AddressSpace {
     }
 
     pub fn write(&mut self, addr: u16, data: u8) {
-        match addr {
+        let mut addr = addr;
+        let mut data = data;
+        let rw = match addr {
             // ROM Banks, read only
-            0x0000...0x7FFF => (),
+            0x0000...0x7FFF => false,
             // Switchable RAM bank
             // TODO: Make RAM switchable
-            0xA000...0xBFFF => {
-                self.data[addr as usize] = data;
-            },
+            0xA000...0xBFFF => true,
             // Internal RAM echo
             0xE000...0xFDFF => {
-                let adj_addr = addr - 0x2000;
-                self.data[adj_addr as usize] = data;
+                addr -= 0x2000;
+                true
             },
-            // TODO: I/O ports
+            // I/O registers
+            IOREG_DIV => {
+                data = 0;
+                true
+            },
+            IOREG_LY => {
+                data = 0;
+                true
+            },
             // No special write rules
-            _ => {
-                self.data[addr as usize] = data;
-            },
+            _ => true,
+        };
+        if rw {
+            self.data[addr as usize] = data;
         }
     }
 
