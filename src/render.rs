@@ -204,7 +204,7 @@ impl GbDisplay {
             let bg_tex = build_tile_tex(display, mem, &opts);
             let uniforms = uniform! {
                 projection: self.projection,
-                translate: (scroll_x as f32, scroll_y as f32),
+                translate: (-(scroll_x as f32), -(scroll_y as f32)),
                 tex: &bg_tex,
             };
             frame.draw(&self.simple_surface, &self.simple_surface_idx, &self.tex_prog, &uniforms, &params);
