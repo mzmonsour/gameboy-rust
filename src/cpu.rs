@@ -71,7 +71,7 @@ impl Cpu {
         let (ie_mask, int_addr) = match int {
             CpuInterrupt::Vblank => {
                 self.ram.write(mem::IOREG_IF, 0x01);
-                (0x01, 0x0000)
+                (0x01, 0x0040)
             },
             _ => {
                 println!("Interrupt not implemented");
@@ -79,14 +79,11 @@ impl Cpu {
             },
         };
         if self.intlevel && (ie_flag & ie_mask) != 0 {
-            // Interrupt routines not emulated currently
-            // Just reset the CPU state to running
-            //
-            //self.intlevel = false;
-            //let pc = self.reg.set_pc(int_addr);
-            //let sp = self.reg.read_u16(Register::SP) - 2;
-            //self.ram.write_u16(sp, pc);
-            //self.reg.write_u16(Register::SP, sp);
+            self.intlevel = false;
+            let pc = self.reg.set_pc(int_addr);
+            let sp = self.reg.read_u16(Register::SP) - 2;
+            self.ram.write_u16(sp, pc);
+            self.reg.write_u16(Register::SP, sp);
             if let CpuState::Halted = self.state {
                 self.state = CpuState::Running;
             }
