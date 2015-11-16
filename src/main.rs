@@ -238,8 +238,8 @@ fn main() {
 
         // Redraw screen
         let mut target = display.draw();
-        target.clear_color(0.0, 0.0, 0.0, 0.0);
-        lcd.clear_viewport(&mut target, viewport, (1.0, 1.0, 1.0, 0.0));
+        target.clear_color(0.0, 0.0, 0.0, 1.0);
+        lcd.clear_viewport(&mut target, viewport, (1.0, 1.0, 1.0, 1.0));
         lcd.draw(&display, &mut target, viewport, cpu.get_ram());
         match target.finish().err() {
             Some(SwapBuffersError::ContextLost) => {
