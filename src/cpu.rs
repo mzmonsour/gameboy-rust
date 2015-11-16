@@ -1127,49 +1127,49 @@ impl Cpu {
                         self.test_bit(x, b);
                     },
                     // Set bit
-                    0xC7 => {
+                    0xC7 | 0xCF | 0xD7 | 0xDF | 0xE7 | 0xEF | 0xF7 | 0xFF => {
                         let x = self.reg.read(Register::A);
                         let b = (subop & 0x38) >> 3;
                         let v = x | (1 << b);
                         self.reg.write(Register::A, v);
                     },
-                    0xC0 => {
+                    0xC0 | 0xC8 | 0xD0 | 0xD8 | 0xE0 | 0xE8 | 0xF0 | 0xF8 => {
                         let x = self.reg.read(Register::B);
                         let b = (subop & 0x38) >> 3;
                         let v = x | (1 << b);
                         self.reg.write(Register::B, v);
                     },
-                    0xC1 => {
+                    0xC1 | 0xC9 | 0xD1 | 0xD9 | 0xE1 | 0xE9 | 0xF1 | 0xF9 => {
                         let x = self.reg.read(Register::C);
                         let b = (subop & 0x38) >> 3;
                         let v = x | (1 << b);
                         self.reg.write(Register::C, v);
                     },
-                    0xC2 => {
+                    0xC2 | 0xCA | 0xD2 | 0xDA | 0xE2 | 0xEA | 0xF2 | 0xFA => {
                         let x = self.reg.read(Register::D);
                         let b = (subop & 0x38) >> 3;
                         let v = x | (1 << b);
                         self.reg.write(Register::D, v);
                     },
-                    0xC3 => {
+                    0xC3 | 0xCB | 0xD3 | 0xDB | 0xE3 | 0xEB | 0xF3 | 0xFB => {
                         let x = self.reg.read(Register::E);
                         let b = (subop & 0x38) >> 3;
                         let v = x | (1 << b);
                         self.reg.write(Register::E, v);
                     },
-                    0xC4 => {
+                    0xC4 | 0xCC | 0xD4 | 0xDC | 0xE4 | 0xEC | 0xF4 | 0xFC => {
                         let x = self.reg.read(Register::H);
                         let b = (subop & 0x38) >> 3;
                         let v = x | (1 << b);
                         self.reg.write(Register::H, v);
                     },
-                    0xC5 => {
+                    0xC5 | 0xCD | 0xD5 | 0xDD | 0xE5 | 0xED | 0xF5 | 0xFD => {
                         let x = self.reg.read(Register::L);
                         let b = (subop & 0x38) >> 3;
                         let v = x | (1 << b);
                         self.reg.write(Register::L, v);
                     },
-                    0xC6 => {
+                    0xC6 | 0xCE | 0xD6 | 0xDE | 0xE6 | 0xEE | 0xF6 | 0xFE => {
                         let addr = self.reg.read_u16(Register::HL);
                         let x = self.ram.read(addr);
                         let b = (subop & 0x38) >> 3;
@@ -1177,49 +1177,49 @@ impl Cpu {
                         self.ram.write(addr, v);
                     },
                     // Reset bit
-                    0x87 => {
+                    0x87 | 0x8F | 0x97 | 0x9F | 0xA7 | 0xAF | 0xB7 | 0xBF => {
                         let x = self.reg.read(Register::A);
                         let b = (subop & 0x38) >> 3;
                         let v = x & ((1 << b) ^ 0xFF);
                         self.reg.write(Register::A, v);
                     },
-                    0x80 => {
+                    0x80 | 0x88 | 0x90 | 0x98 | 0xA0 | 0xA8 | 0xB0 | 0xB8 => {
                         let x = self.reg.read(Register::B);
                         let b = (subop & 0x38) >> 3;
                         let v = x & ((1 << b) ^ 0xFF);
                         self.reg.write(Register::B, v);
                     },
-                    0x81 => {
+                    0x81 | 0x89 | 0x91 | 0x99 | 0xA1 | 0xA9 | 0xB1 | 0xB9 => {
                         let x = self.reg.read(Register::C);
                         let b = (subop & 0x38) >> 3;
                         let v = x & ((1 << b) ^ 0xFF);
                         self.reg.write(Register::C, v);
                     },
-                    0x82 => {
+                    0x82 | 0x8A | 0x92 | 0x9A | 0xA2 | 0xAA | 0xB2 | 0xBA => {
                         let x = self.reg.read(Register::D);
                         let b = (subop & 0x38) >> 3;
                         let v = x & ((1 << b) ^ 0xFF);
                         self.reg.write(Register::D, v);
                     },
-                    0x83 => {
+                    0x83 | 0x8B | 0x93 | 0x9B | 0xA3 | 0xAB | 0xB3 | 0xBB => {
                         let x = self.reg.read(Register::E);
                         let b = (subop & 0x38) >> 3;
                         let v = x & ((1 << b) ^ 0xFF);
                         self.reg.write(Register::E, v);
                     },
-                    0x84 => {
+                    0x84 | 0x8C | 0x94 | 0x9C | 0xA4 | 0xAC | 0xB4 | 0xBC => {
                         let x = self.reg.read(Register::H);
                         let b = (subop & 0x38) >> 3;
                         let v = x & ((1 << b) ^ 0xFF);
                         self.reg.write(Register::H, v);
                     },
-                    0x85 => {
+                    0x85 | 0x8D | 0x95 | 0x9D | 0xA5 | 0xAD | 0xB5 | 0xBD => {
                         let x = self.reg.read(Register::L);
                         let b = (subop & 0x38) >> 3;
                         let v = x & ((1 << b) ^ 0xFF);
                         self.reg.write(Register::L, v);
                     },
-                    0x86 => {
+                    0x86 | 0x8E | 0x96 | 0x9E | 0xA6 | 0xAE | 0xB6 | 0xBE => {
                         let addr = self.reg.read_u16(Register::HL);
                         let x = self.ram.read(addr);
                         let b = (subop & 0x38) >> 3;
