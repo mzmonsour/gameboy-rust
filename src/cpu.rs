@@ -1701,6 +1701,8 @@ impl Cpu {
         let pc = self.reg.set_pc(addr);
         self.ram.write_u16(sp, pc);
         self.reg.write_u16(Register::SP, sp);
+        // Re-enable BIOS memory
+        self.ram.set_bios_readable();
     }
 
     pub fn init(&mut self) {

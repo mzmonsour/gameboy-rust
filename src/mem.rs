@@ -12,7 +12,9 @@ pub enum MemSection {
 }
 
 pub struct AddressSpace {
+    bios:  [u8; 0x100],
     data: [u8; 0x10000],
+    bios_readable: bool,
 }
 
 pub const IOREG_P1:     u16 = 0xFF00;
@@ -34,16 +36,25 @@ pub const IOREG_OBP0:   u16 = 0xFF48;
 pub const IOREG_OBP1:   u16 = 0xFF49;
 pub const IOREG_WY:     u16 = 0xFF4A;
 pub const IOREG_WX:     u16 = 0xFF4B;
+pub const IOREG_BIOSRW: u16 = 0xFF50;
 pub const IOREG_IE:     u16 = 0xFFFF;
 
 impl AddressSpace {
 
     pub fn new() -> AddressSpace {
-        AddressSpace { data: [0; 0x10000] }
+        AddressSpace {
+            bios: [0; 0x100],
+            data: [0; 0x10000],
+            bios_readable: true,
+        }
     }
 
     pub fn read(&self, addr: u16) -> u8 {
-        self.data[addr as usize]
+        if addr < 0x100 && self.bios_readable {
+            self.bios[addr as usize]
+        } else {
+            self.data[addr as usize]
+        }
     }
 
     pub fn read_u16(&self, addr: u16) -> u16 {
@@ -88,6 +99,13 @@ impl AddressSpace {
                 }
                 true
             },
+            // Disable access to BIOS memory
+            IOREG_BIOSRW => {
+                if self.bios_readable && data == 1 {
+                    self.bios_readable = false;
+                }
+                false
+            },
             // No special write rules
             _ => true,
         };
@@ -104,17 +122,20 @@ impl AddressSpace {
     }
 
     pub fn load_bios(&mut self, bios: &mut File) -> ::std::io::Result<()> {
-        try!(bios.read(&mut self.data[0x000..0x100]));
+        try!(bios.read(&mut self.bios[0x000..0x100]));
         Ok(())
     }
 
     pub fn load_rom(&mut self, rom: &mut File) -> ::std::io::Result<()> {
         // Read in header first
-        try!(rom.seek(SeekFrom::Start(0x100)));
-        try!(rom.read(&mut self.data[0x100..0x150]));
+        try!(rom.read(&mut self.data[0x000..0x150]));
         // Then read in remaining cart data
         try!(rom.read(&mut self.data[0x0150..0x8000]));
         Ok(())
+    }
+
+    pub fn set_bios_readable(&mut self) {
+        self.bios_readable = true;
     }
 
 }
