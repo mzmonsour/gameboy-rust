@@ -293,8 +293,8 @@ fn build_tile_tex<F>(display: &F, mem: &AddressSpace, opts: &TileOpts) -> Textur
         } else {
             mem[opts.map_addr + i] as i32
         };
-        let addr = (opts.tile_addr as i32 + offset) as u16;
-        let y_coord = i / 32;
+        let addr = (opts.tile_addr as i32 + offset*16) as u16;
+        let y_coord = (i / 32) as usize;
         // Pixel format: big endian pixel pos
         for j in 0..8 {
             let lo = mem[addr + j*2];
@@ -302,7 +302,7 @@ fn build_tile_tex<F>(display: &F, mem: &AddressSpace, opts: &TileOpts) -> Textur
             for k in (0..8).rev() {
                 let mask = 1 << k;
                 let color = ((lo & mask) >> k) | (((hi & mask) >> k) << 1);
-                data[(y_coord + j) as usize].push(opts.palette[color as usize]);
+                data[y_coord*8 + j as usize].push(opts.palette[color as usize]);
             }
         }
     }
