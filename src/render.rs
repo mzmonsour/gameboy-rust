@@ -9,6 +9,8 @@ use glium::Texture2d;
 use glium::Blend;
 use glium::index::PrimitiveType;
 use glium::backend::Facade;
+use glium::texture::MipmapsOption;
+use glium::uniforms::{Sampler, MagnifySamplerFilter, MinifySamplerFilter};
 
 use nalgebra::Mat4;
 use nalgebra::OrthoMat3;
@@ -37,11 +39,12 @@ in vec2 tcoord;
 out vec2 tex_coord;
 
 uniform mat4 projection;
-uniform vec2 translate;
+uniform vec2 translate = vec2(0.0,  0.0);
+uniform vec2 tex_scroll = vec2(0.0, 0.0);
 
 void main() {
-    tex_coord = tcoord;
-    gl_Position = projection * vec4(coord.x + translate.x, coord.y + translate.y, 0.0, 1.0);
+    tex_coord = tcoord + tex_scroll;
+    gl_Position = projection * vec4(coord + translate, 0.0, 1.0);
 }
 "#;
 
@@ -53,7 +56,6 @@ in vec2 tex_coord;
 out vec4 frag_color;
 
 uniform vec4 color;
-uniform vec2 translate;
 
 void main() {
     frag_color = color;
@@ -85,6 +87,8 @@ implement_vertex!(Vertex, coord, tcoord);
 pub struct GbDisplay {
     simple_surface: VertexBuffer<Vertex>,
     simple_surface_idx: IndexBuffer<u32>,
+    scroll_surface: VertexBuffer<Vertex>,
+    scroll_surface_idx: IndexBuffer<u32>,
     color_prog: Program,
     tex_prog: Program,
     projection: Mat4<f32>,
@@ -94,22 +98,23 @@ pub struct GbDisplay {
 impl GbDisplay {
 
     pub fn new<F>(display: &F) -> GbDisplay where F: Facade {
+        // Full texture surface
         let (vertbuf, idxbuf) = {
             let topleft = Vertex {
                 coord: [0.0, 0.0],
-                tcoord: [0.0, 1.0],
+                tcoord: [0.0, 0.0],
             };
             let topright = Vertex {
                 coord: [BG_SIZE as f32, 0.0],
-                tcoord: [1.0, 1.0],
+                tcoord: [1.0, 0.0],
             };
             let bottomright = Vertex {
                 coord: [BG_SIZE as f32, BG_SIZE as f32],
-                tcoord: [1.0, 0.0],
+                tcoord: [1.0, 1.0],
             };
             let bottomleft = Vertex {
                 coord: [0.0, BG_SIZE as f32],
-                tcoord: [0.0, 0.0],
+                tcoord: [0.0, 1.0],
             };
             let vertices = vec![topleft, topright, bottomright, bottomleft];
             let indices = vec![0, 1, 3, 1, 2, 3];
@@ -118,8 +123,37 @@ impl GbDisplay {
                 IndexBuffer::immutable(display, PrimitiveType::TrianglesList, &indices).unwrap()
             )
         };
+        // Texture scrolling surface
+        let (scroll_buff, scroll_idx) = {
+            let texw = (LCD_WIDTH as f32) / (BG_SIZE as f32);
+            let texh = (LCD_HEIGHT as f32) / (BG_SIZE as f32);
+            let topleft = Vertex {
+                coord: [0.0, 0.0],
+                tcoord: [0.0, 0.0],
+            };
+            let topright = Vertex {
+                coord: [LCD_WIDTH as f32, 0.0],
+                tcoord: [texw, 0.0],
+            };
+            let bottomright = Vertex {
+                coord: [LCD_WIDTH as f32, LCD_HEIGHT as f32],
+                tcoord: [texw, texh],
+            };
+            let bottomleft = Vertex {
+                coord: [0.0, LCD_HEIGHT as f32],
+                tcoord: [0.0, texh],
+            };
+            let vertices = vec![topleft, topright, bottomright, bottomleft];
+            let indices = vec![0, 1, 3, 1, 2, 3];
+            (
+                VertexBuffer::new(display, &vertices).unwrap(),
+                IndexBuffer::immutable(display, PrimitiveType::TrianglesList, &indices).unwrap()
+            )
+        };
+        // Shaders
         let colorprog = Program::from_source(display, SIMPLE_VERT, COLOR_FRAG, None).unwrap();
         let texprog = Program::from_source(display, SIMPLE_VERT, TEXTURE_FRAG, None).unwrap();
+        // Projection matrices
         let projection = {
             let orthomat = OrthoMat3::new(LCD_WIDTH as f32, LCD_HEIGHT as f32, 0.0, 1.0);
             // Reverse y coord, and translate origin to top left
@@ -131,9 +165,12 @@ impl GbDisplay {
                 );
             orthomat.to_mat() * adjust
         };
+        // Result
         GbDisplay {
             simple_surface: vertbuf,
             simple_surface_idx: idxbuf,
+            scroll_surface: scroll_buff,
+            scroll_surface_idx: scroll_idx,
             color_prog: colorprog,
             tex_prog: texprog,
             projection: projection,
@@ -162,7 +199,6 @@ impl GbDisplay {
         };
         let uniforms = uniform! {
             projection: self.projection,
-            translate: (0.0f32, 0.0),
             color: color,
         };
         frame.draw(&self.simple_surface, &self.simple_surface_idx, &self.color_prog, &uniforms, &params);
@@ -202,12 +238,16 @@ impl GbDisplay {
                 palette: bg_palette,
             };
             let bg_tex = build_tile_tex(display, mem, &opts);
+            let tsx = (scroll_x as f32) / (BG_SIZE as f32);
+            let tsy = (scroll_y as f32) / (BG_SIZE as f32);
             let uniforms = uniform! {
                 projection: self.projection,
-                translate: (-(scroll_x as f32), -(scroll_y as f32)),
-                tex: &bg_tex,
+                tex_scroll: (tsx, tsy),
+                tex: Sampler::new(&bg_tex)
+                    .magnify_filter(MagnifySamplerFilter::Nearest)
+                    .minify_filter(MinifySamplerFilter::Nearest),
             };
-            frame.draw(&self.simple_surface, &self.simple_surface_idx, &self.tex_prog, &uniforms, &params);
+            frame.draw(&self.scroll_surface, &self.scroll_surface_idx, &self.tex_prog, &uniforms, &params);
         }
 
         // Draw window
@@ -222,7 +262,9 @@ impl GbDisplay {
             let uniforms = uniform! {
                 projection: self.projection,
                 translate: (win_x as f32, win_y as f32),
-                tex: &win_tex,
+                tex: Sampler::new(&win_tex)
+                    .magnify_filter(MagnifySamplerFilter::Nearest)
+                    .minify_filter(MinifySamplerFilter::Nearest),
             };
             frame.draw(&self.simple_surface, &self.simple_surface_idx, &self.tex_prog, &uniforms, &params);
         }
@@ -306,7 +348,7 @@ fn build_tile_tex<F>(display: &F, mem: &AddressSpace, opts: &TileOpts) -> Textur
             }
         }
     }
-    Texture2d::new(display, data).unwrap()
+    Texture2d::with_mipmaps(display, data, MipmapsOption::NoMipmap).unwrap()
 }
 
 pub fn calculate_viewport(width: u32, height: u32) -> Rect {
