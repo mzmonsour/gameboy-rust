@@ -28,6 +28,7 @@ pub const IOREG_SCY:    u16 = 0xFF42;
 pub const IOREG_SCX:    u16 = 0xFF43;
 pub const IOREG_LY:     u16 = 0xFF44;
 pub const IOREG_LYC:    u16 = 0xFF45;
+pub const IOREG_DMA:    u16 = 0xFF46;
 pub const IOREG_BGP:    u16 = 0xFF47;
 pub const IOREG_OBP0:   u16 = 0xFF48;
 pub const IOREG_OBP1:   u16 = 0xFF49;
@@ -76,6 +77,15 @@ impl AddressSpace {
             },
             IOREG_LY => {
                 data = 0;
+                true
+            },
+            // Don't write, but begin a DMA instead
+            IOREG_DMA => {
+                let to_addr = 0xFE00;
+                let from_addr = (data as u16) << 8;
+                for i in 0x000..0x100 {
+                    self.data[to_addr as usize + i] = self.data[from_addr as usize + i];
+                }
                 true
             },
             // No special write rules
