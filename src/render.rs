@@ -41,8 +41,8 @@ in vec2 tcoord;
 out vec2 tex_coord;
 
 uniform mat4 projection;
-uniform vec2 translate = vec2(0.0,  0.0);
-uniform vec2 tex_scroll = vec2(0.0, 0.0);
+uniform vec2 translate;
+uniform vec2 tex_scroll;
 
 void main() {
     tex_coord = tcoord + tex_scroll;
@@ -540,6 +540,7 @@ impl GbDisplay {
         let uniforms = uniform! {
             projection: self.projection,
             translate: (sprite.xpos as f32 - 8.0, sprite.ypos as f32 - 16.0),
+            tex_scroll: (0.0f32, 0.0),
             tex: Sampler::new(&sprite.tex)
                 .magnify_filter(MagnifySamplerFilter::Nearest)
                 .minify_filter(MinifySamplerFilter::Nearest),
