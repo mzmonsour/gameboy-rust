@@ -84,71 +84,282 @@ struct Vertex {
 
 implement_vertex!(Vertex, coord, tcoord);
 
+const FLIP_NONE:    u8 = 0;
+const FLIP_X:       u8 = 1;
+const FLIP_Y:       u8 = 2;
+const FLIP_X_Y:     u8 = 3;
+
 pub struct GbDisplay {
-    simple_surface: VertexBuffer<Vertex>,
-    simple_surface_idx: IndexBuffer<u32>,
-    scroll_surface: VertexBuffer<Vertex>,
-    scroll_surface_idx: IndexBuffer<u32>,
-    color_prog: Program,
-    tex_prog: Program,
-    projection: Mat4<f32>,
-    ly_counter: u8,
+    vertbuf:                VertexBuffer<Vertex>,
+    simple_surface_idx:     IndexBuffer<u32>,
+    scroll_surface_idx:     IndexBuffer<u32>,
+    sprite_8_idx:           [IndexBuffer<u32>; 4],
+    sprite_16_idx:          [IndexBuffer<u32>; 4],
+    color_prog:             Program,
+    tex_prog:               Program,
+    projection:             Mat4<f32>,
+    ly_counter:             u8,
 }
 
 impl GbDisplay {
 
     pub fn new<F>(display: &F) -> GbDisplay where F: Facade {
+        let mut vertbuf = Vec::new();
         // Full texture surface
-        let (vertbuf, idxbuf) = {
-            let topleft = Vertex {
+        let simple_idx = {
+            // 0:   Top left
+            vertbuf.push(Vertex {
                 coord: [0.0, 0.0],
                 tcoord: [0.0, 0.0],
-            };
-            let topright = Vertex {
+            });
+            // 1:   Top right
+            vertbuf.push(Vertex {
                 coord: [BG_SIZE as f32, 0.0],
                 tcoord: [1.0, 0.0],
-            };
-            let bottomright = Vertex {
+            });
+            // 2:   Bottom right
+            vertbuf.push(Vertex {
                 coord: [BG_SIZE as f32, BG_SIZE as f32],
                 tcoord: [1.0, 1.0],
-            };
-            let bottomleft = Vertex {
+            });
+            // 3:   Bottom left
+            vertbuf.push(Vertex {
                 coord: [0.0, BG_SIZE as f32],
                 tcoord: [0.0, 1.0],
-            };
-            let vertices = vec![topleft, topright, bottomright, bottomleft];
+            });
             let indices = vec![0, 1, 3, 1, 2, 3];
-            (
-                VertexBuffer::new(display, &vertices).unwrap(),
-                IndexBuffer::immutable(display, PrimitiveType::TrianglesList, &indices).unwrap()
-            )
+            IndexBuffer::immutable(display, PrimitiveType::TrianglesList, &indices).unwrap()
         };
         // Texture scrolling surface
-        let (scroll_buff, scroll_idx) = {
+        let scroll_idx = {
             let texw = (LCD_WIDTH as f32) / (BG_SIZE as f32);
             let texh = (LCD_HEIGHT as f32) / (BG_SIZE as f32);
-            let topleft = Vertex {
+            // 4:   Top left
+            vertbuf.push(Vertex {
                 coord: [0.0, 0.0],
                 tcoord: [0.0, 0.0],
-            };
-            let topright = Vertex {
+            });
+            // 5:   Top right
+            vertbuf.push(Vertex {
                 coord: [LCD_WIDTH as f32, 0.0],
                 tcoord: [texw, 0.0],
-            };
-            let bottomright = Vertex {
+            });
+            // 6:   Bottom right
+            vertbuf.push(Vertex {
                 coord: [LCD_WIDTH as f32, LCD_HEIGHT as f32],
                 tcoord: [texw, texh],
-            };
-            let bottomleft = Vertex {
+            });
+            // 7:   Bottom left
+            vertbuf.push(Vertex {
                 coord: [0.0, LCD_HEIGHT as f32],
                 tcoord: [0.0, texh],
-            };
-            let vertices = vec![topleft, topright, bottomright, bottomleft];
-            let indices = vec![0, 1, 3, 1, 2, 3];
-            (
-                VertexBuffer::new(display, &vertices).unwrap(),
-                IndexBuffer::immutable(display, PrimitiveType::TrianglesList, &indices).unwrap()
-            )
+            });
+            let indices = vec![4, 5, 7, 5, 6, 7];
+            IndexBuffer::immutable(display, PrimitiveType::TrianglesList, &indices).unwrap()
+        };
+        // Sprite 8x8
+        let sprite_8 = {
+            let sprite_w = 8.0;
+            let sprite_h = 8.0;
+            // NO FLIP
+            // 8:   Top left
+            vertbuf.push(Vertex {
+                coord: [0.0, 0.0],
+                tcoord: [0.0, 0.0],
+            });
+            // 9:   Top right
+            vertbuf.push(Vertex {
+                coord: [sprite_w, 0.0],
+                tcoord: [1.0, 0.0],
+            });
+            // 10:  Bottom right
+            vertbuf.push(Vertex {
+                coord: [sprite_w, sprite_h],
+                tcoord: [1.0, 1.0],
+            });
+            // 11:  Bottom left
+            vertbuf.push(Vertex {
+                coord: [0.0, sprite_h],
+                tcoord: [0.0, 1.0],
+            });
+            //
+            // FLIP Y
+            // 12:   Top left
+            vertbuf.push(Vertex {
+                coord: [0.0, 0.0],
+                tcoord: [0.0, 1.0],
+            });
+            // 13:   Top right
+            vertbuf.push(Vertex {
+                coord: [sprite_w, 0.0],
+                tcoord: [1.0, 1.0],
+            });
+            // 14:  Bottom right
+            vertbuf.push(Vertex {
+                coord: [sprite_w, sprite_h],
+                tcoord: [1.0, 0.0],
+            });
+            // 15:  Bottom left
+            vertbuf.push(Vertex {
+                coord: [0.0, sprite_h],
+                tcoord: [0.0, 0.0],
+            });
+            //
+            // FLIP X
+            // 16:   Top left
+            vertbuf.push(Vertex {
+                coord: [0.0, 0.0],
+                tcoord: [1.0, 0.0],
+            });
+            // 17:   Top right
+            vertbuf.push(Vertex {
+                coord: [sprite_w, 0.0],
+                tcoord: [0.0, 0.0],
+            });
+            // 18:  Bottom right
+            vertbuf.push(Vertex {
+                coord: [sprite_w, sprite_h],
+                tcoord: [0.0, 1.0],
+            });
+            // 19:  Bottom left
+            vertbuf.push(Vertex {
+                coord: [0.0, sprite_h],
+                tcoord: [1.0, 1.0],
+            });
+            //
+            // FLIP BOTH
+            // 20:   Top left
+            vertbuf.push(Vertex {
+                coord: [0.0, 0.0],
+                tcoord: [1.0, 1.0],
+            });
+            // 21:   Top right
+            vertbuf.push(Vertex {
+                coord: [sprite_w, 0.0],
+                tcoord: [0.0, 1.0],
+            });
+            // 22:  Bottom right
+            vertbuf.push(Vertex {
+                coord: [sprite_w, sprite_h],
+                tcoord: [0.0, 0.0],
+            });
+            // 23:  Bottom left
+            vertbuf.push(Vertex {
+                coord: [0.0, sprite_h],
+                tcoord: [1.0, 0.0],
+            });
+            let idx_noflip      = vec![8,   9,  11, 9,  10, 11];
+            let idx_yflip       = vec![12,  13, 15, 13, 14, 15];
+            let idx_xflip       = vec![16,  17, 19, 17, 18, 19];
+            let idx_bothflip    = vec![20,  21, 23, 21, 22, 23];
+            [
+                IndexBuffer::immutable(display, PrimitiveType::TrianglesList, &idx_noflip).unwrap(),
+                IndexBuffer::immutable(display, PrimitiveType::TrianglesList, &idx_xflip).unwrap(),
+                IndexBuffer::immutable(display, PrimitiveType::TrianglesList, &idx_yflip).unwrap(),
+                IndexBuffer::immutable(display, PrimitiveType::TrianglesList, &idx_bothflip).unwrap(),
+            ]
+        };
+        // Sprite 8x16
+        let sprite_16 = {
+            let sprite_w = 8.0;
+            let sprite_h = 16.0;
+            // NO FLIP
+            // 24:  Top left
+            vertbuf.push(Vertex {
+                coord: [0.0, 0.0],
+                tcoord: [0.0, 0.0],
+            });
+            // 25:  Top right
+            vertbuf.push(Vertex {
+                coord: [sprite_w, 0.0],
+                tcoord: [1.0, 0.0],
+            });
+            // 26:  Bottom right
+            vertbuf.push(Vertex {
+                coord: [sprite_w, sprite_h],
+                tcoord: [1.0, 1.0],
+            });
+            // 27:  Bottom left
+            vertbuf.push(Vertex {
+                coord: [0.0, sprite_h],
+                tcoord: [0.0, 1.0],
+            });
+            //
+            // FLIP Y
+            // 28:   Top left
+            vertbuf.push(Vertex {
+                coord: [0.0, 0.0],
+                tcoord: [0.0, 1.0],
+            });
+            // 29:   Top right
+            vertbuf.push(Vertex {
+                coord: [sprite_w, 0.0],
+                tcoord: [1.0, 1.0],
+            });
+            // 30:  Bottom right
+            vertbuf.push(Vertex {
+                coord: [sprite_w, sprite_h],
+                tcoord: [1.0, 0.0],
+            });
+            // 31:  Bottom left
+            vertbuf.push(Vertex {
+                coord: [0.0, sprite_h],
+                tcoord: [0.0, 0.0],
+            });
+            //
+            // FLIP X
+            // 32:   Top left
+            vertbuf.push(Vertex {
+                coord: [0.0, 0.0],
+                tcoord: [1.0, 0.0],
+            });
+            // 33:   Top right
+            vertbuf.push(Vertex {
+                coord: [sprite_w, 0.0],
+                tcoord: [0.0, 0.0],
+            });
+            // 34:  Bottom right
+            vertbuf.push(Vertex {
+                coord: [sprite_w, sprite_h],
+                tcoord: [0.0, 1.0],
+            });
+            // 35:  Bottom left
+            vertbuf.push(Vertex {
+                coord: [0.0, sprite_h],
+                tcoord: [1.0, 1.0],
+            });
+            //
+            // FLIP BOTH
+            // 36:   Top left
+            vertbuf.push(Vertex {
+                coord: [0.0, 0.0],
+                tcoord: [1.0, 1.0],
+            });
+            // 37:   Top right
+            vertbuf.push(Vertex {
+                coord: [sprite_w, 0.0],
+                tcoord: [0.0, 1.0],
+            });
+            // 38:  Bottom right
+            vertbuf.push(Vertex {
+                coord: [sprite_w, sprite_h],
+                tcoord: [0.0, 0.0],
+            });
+            // 39:  Bottom left
+            vertbuf.push(Vertex {
+                coord: [0.0, sprite_h],
+                tcoord: [1.0, 0.0],
+            });
+            let idx_noflip      = vec![24,  25, 27, 25, 26, 27];
+            let idx_yflip       = vec![28,  29, 31, 29, 30, 31];
+            let idx_xflip       = vec![32,  33, 35, 33, 34, 35];
+            let idx_bothflip    = vec![36,  37, 39, 37, 38, 39];
+            [
+                IndexBuffer::immutable(display, PrimitiveType::TrianglesList, &idx_noflip).unwrap(),
+                IndexBuffer::immutable(display, PrimitiveType::TrianglesList, &idx_xflip).unwrap(),
+                IndexBuffer::immutable(display, PrimitiveType::TrianglesList, &idx_yflip).unwrap(),
+                IndexBuffer::immutable(display, PrimitiveType::TrianglesList, &idx_bothflip).unwrap(),
+            ]
         };
         // Shaders
         let colorprog = Program::from_source(display, SIMPLE_VERT, COLOR_FRAG, None).unwrap();
@@ -165,12 +376,14 @@ impl GbDisplay {
                 );
             orthomat.to_mat() * adjust
         };
+        let vertexbuffer = VertexBuffer::immutable(display, &vertbuf).unwrap();
         // Result
         GbDisplay {
-            simple_surface: vertbuf,
-            simple_surface_idx: idxbuf,
-            scroll_surface: scroll_buff,
+            vertbuf: vertexbuffer,
+            simple_surface_idx: simple_idx,
             scroll_surface_idx: scroll_idx,
+            sprite_8_idx: sprite_8,
+            sprite_16_idx: sprite_16,
             color_prog: colorprog,
             tex_prog: texprog,
             projection: projection,
@@ -201,7 +414,7 @@ impl GbDisplay {
             projection: self.projection,
             color: color,
         };
-        frame.draw(&self.simple_surface, &self.simple_surface_idx, &self.color_prog, &uniforms, &params);
+        frame.draw(&self.vertbuf, &self.simple_surface_idx, &self.color_prog, &uniforms, &params);
     }
 
     pub fn draw<F>(&mut self, display: &F, frame: &mut Frame, view: Rect, mem: &AddressSpace) where F: Facade {
@@ -247,7 +460,7 @@ impl GbDisplay {
                     .magnify_filter(MagnifySamplerFilter::Nearest)
                     .minify_filter(MinifySamplerFilter::Nearest),
             };
-            frame.draw(&self.scroll_surface, &self.scroll_surface_idx, &self.tex_prog, &uniforms, &params);
+            frame.draw(&self.vertbuf, &self.scroll_surface_idx, &self.tex_prog, &uniforms, &params);
         }
 
         // Draw window
@@ -266,7 +479,7 @@ impl GbDisplay {
                     .magnify_filter(MagnifySamplerFilter::Nearest)
                     .minify_filter(MinifySamplerFilter::Nearest),
             };
-            frame.draw(&self.simple_surface, &self.simple_surface_idx, &self.tex_prog, &uniforms, &params);
+            frame.draw(&self.vertbuf, &self.simple_surface_idx, &self.tex_prog, &uniforms, &params);
         }
     }
 }
