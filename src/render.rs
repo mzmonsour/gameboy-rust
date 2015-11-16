@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use glium::VertexBuffer;
 use glium::IndexBuffer;
 use glium::Program;
@@ -425,7 +427,7 @@ impl GbDisplay {
         let (tile_data, signed_idx) = if (lcdc_reg & 0x10) == 0 { (0x9000, true) }
                                         else { (0x8000, false) };
         let bg_map_addr             = if (lcdc_reg & 0x08) == 0 { 0x9800 } else { 0x9C00 };
-        let sprite_height           = if (lcdc_reg & 0x04) == 0 { 8 } else { 16 };
+        let sprite_height           = if (lcdc_reg & 0x04) == 0 { 1 } else { 2 };
         let sprite_on               = (lcdc_reg & 0x02) != 0;
         let bg_on                   = (lcdc_reg & 0x01) != 0;
         let scroll_y = mem[0xFF42];
@@ -442,6 +444,32 @@ impl GbDisplay {
             .. Default::default()
         };
 
+        let sprite_opts = SpriteOpts {
+            height_mode: sprite_height,
+            palette0: sprite_palette0,
+            palette1: sprite_palette1,
+        };
+        let mut spritelist = if sprite_on {
+            build_sprites(display, mem, &sprite_opts)
+        } else {
+            vec![]
+        };
+        spritelist.sort_by(|a, b| {
+            let ord = a.xpos.cmp(&b.xpos).reverse();
+            if let Ordering::Equal = ord {
+                a.order.cmp(&b.order).reverse()
+            } else {
+                ord
+            }
+        });
+
+        // Draw priority 1 sprites behind BG
+        for sprite in spritelist.iter() {
+            if sprite.priority == 1 {
+                self.draw_sprite(frame, &sprite, &sprite_opts, &params);
+            }
+        }
+
         // Draw BG
         if bg_on {
             let opts = TileOpts {
@@ -456,6 +484,7 @@ impl GbDisplay {
             let uniforms = uniform! {
                 projection: self.projection,
                 tex_scroll: (tsx, tsy),
+                translate: (0.0f32, 0.0f32),
                 tex: Sampler::new(&bg_tex)
                     .magnify_filter(MagnifySamplerFilter::Nearest)
                     .minify_filter(MinifySamplerFilter::Nearest),
@@ -481,6 +510,41 @@ impl GbDisplay {
             };
             frame.draw(&self.vertbuf, &self.simple_surface_idx, &self.tex_prog, &uniforms, &params);
         }
+
+        // Draw priority 0 sprites in front of BG and Window
+        for sprite in spritelist.iter() {
+            if sprite.priority == 0 {
+                self.draw_sprite(frame, &sprite, &sprite_opts, &params);
+            }
+        }
+    }
+
+    fn draw_sprite(&mut self, frame: &mut Frame, sprite: &SpriteData, opts: &SpriteOpts, params: &DrawParameters) {
+        let flip_mode = if sprite.xflip {
+            if sprite.yflip {
+                FLIP_X_Y
+            } else {
+                FLIP_X
+            }
+        } else if sprite.yflip {
+            FLIP_Y
+        } else {
+            FLIP_NONE
+        };
+        let sprite_idx_key = if opts.height_mode > 1 {
+            &self.sprite_16_idx
+        } else {
+            &self.sprite_8_idx
+        };
+        let sprite_idx = &sprite_idx_key[flip_mode as usize];
+        let uniforms = uniform! {
+            projection: self.projection,
+            translate: (sprite.xpos as f32 - 8.0, sprite.ypos as f32 - 16.0),
+            tex: Sampler::new(&sprite.tex)
+                .magnify_filter(MagnifySamplerFilter::Nearest)
+                .minify_filter(MinifySamplerFilter::Nearest),
+        };
+        frame.draw(&self.vertbuf, sprite_idx, &self.tex_prog, &uniforms, params);
     }
 }
 
@@ -562,6 +626,65 @@ fn build_tile_tex<F>(display: &F, mem: &AddressSpace, opts: &TileOpts) -> Textur
         }
     }
     Texture2d::with_mipmaps(display, data, MipmapsOption::NoMipmap).unwrap()
+}
+
+struct SpriteOpts {
+    height_mode: u8,
+    palette0: [(f32, f32, f32, f32); 4],
+    palette1: [(f32, f32, f32, f32); 4],
+}
+
+struct SpriteData {
+    priority:   u8,
+    order:      u8,
+    tex:        Texture2d,
+    ypos:       u8,
+    xpos:       u8,
+    yflip:      bool,
+    xflip:      bool,
+}
+
+const SPRITE_ATTR_ADDR: u16 = 0xFE00;
+const SPRITE_TILE_ADDR: u16 = 0x8000;
+
+fn build_sprites<F>(display: &F, mem: &AddressSpace, opts: &SpriteOpts) -> Vec<SpriteData> where F: Facade {
+    let mut sprites = Vec::with_capacity(40);
+    let height = opts.height_mode * 8;
+    for i in 0..40 {
+        let mut texdata = Vec::with_capacity(height as usize);
+        for _ in 0..height {
+            texdata.push(Vec::with_capacity(8));
+        }
+        let ypos = mem[SPRITE_ATTR_ADDR + i*4];
+        let xpos = mem[SPRITE_ATTR_ADDR + i*4 + 1];
+        let tile = mem[SPRITE_ATTR_ADDR + i*4 + 2] & if opts.height_mode > 1 { 0xFE } else { 0xFF };
+        let flag = mem[SPRITE_ATTR_ADDR + i*4 + 3];
+        let palette = if ((flag & 0x10) >> 4) == 0 {
+            opts.palette0
+        } else {
+            opts.palette1
+        };
+        let tile_addr = SPRITE_TILE_ADDR + (tile as u16) * 16;
+        for j in 0..height {
+            let lo = mem[tile_addr + (j as u16)*2];
+            let hi = mem[tile_addr + (j as u16)*2 + 1];
+            for k in (0..8).rev() {
+                let mask = 1 << k;
+                let color = ((lo & mask) >> k) | (((hi & mask) >> k) << 1);
+                texdata[j as usize].push(palette[color as usize]);
+            }
+        }
+        sprites.push(SpriteData {
+            priority: (flag & 0x80) >> 7,
+            order: i as u8,
+            tex: Texture2d::with_mipmaps(display, texdata, MipmapsOption::NoMipmap).unwrap(),
+            ypos: ypos,
+            xpos: xpos,
+            yflip: (flag & 0x04) != 0,
+            xflip: (flag & 0x02) != 0,
+        });
+    }
+    sprites
 }
 
 pub fn calculate_viewport(width: u32, height: u32) -> Rect {
