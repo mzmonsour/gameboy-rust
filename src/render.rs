@@ -550,8 +550,8 @@ impl GbDisplay {
 }
 
 const PALETTE_COLOR0: (f32, f32, f32, f32) = (1.0, 1.0, 1.0, 0.0);
-const PALETTE_COLOR1: (f32, f32, f32, f32) = (0.25, 0.25, 0.25, 1.0);
-const PALETTE_COLOR2: (f32, f32, f32, f32) = (0.75, 0.75, 0.75, 1.0);
+const PALETTE_COLOR1: (f32, f32, f32, f32) = (0.4, 0.4, 0.4, 1.0);
+const PALETTE_COLOR2: (f32, f32, f32, f32) = (0.1, 0.1, 0.1, 1.0);
 const PALETTE_COLOR3: (f32, f32, f32, f32) = (0.0, 0.0, 0.0, 1.0);
 const PALETTE_COLORTEST: (f32, f32, f32, f32) = (1.0, 0.5, 0.75, 1.0);
 
