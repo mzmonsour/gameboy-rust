@@ -28,6 +28,7 @@ mod render;
 pub enum IntType {
     Vblank,
     Hblank,
+    IoTimer,
 }
 
 struct ClockInt {
@@ -191,6 +192,7 @@ fn main() {
     let mut clock = Clock::new(cpu::GB_FREQUENCY);
     clock.set_interrupt(IntType::Vblank, render::VBLANK_PERIOD);
     clock.set_interrupt(IntType::Hblank, render::HBLANK_PERIOD);
+    clock.set_interrupt(IntType::IoTimer, cpu::TIMER_BASE_PERIOD_NS);
 
     // Simulate CPU
     'main: loop {
@@ -232,6 +234,11 @@ fn main() {
                         if ly == 0 {
                             break 'sim;
                         }
+                    }
+                    // Do timer computations
+                    IntType::IoTimer => {
+                        clock.set_interrupt(IntType::IoTimer, cpu::TIMER_BASE_PERIOD_NS);
+                        cpu.inc_io_timer();
                     }
                 }
             }

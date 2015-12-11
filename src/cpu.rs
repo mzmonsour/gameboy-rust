@@ -9,6 +9,9 @@ use std::num::Wrapping;
 
 pub const GB_FREQUENCY: u32 = 4194304;
 
+pub const TIMER_BASE_FREQUENCY: u64 = 262144;
+pub const TIMER_BASE_PERIOD_NS: u64 = 1_000_000_000 / TIMER_BASE_FREQUENCY;
+
 #[derive(Copy, Clone)]
 pub enum CpuState {
     Running, // Instructions run normally
@@ -35,6 +38,7 @@ pub struct Cpu {
     clock: u64,
     state: CpuState,
     intlevel: bool,
+    io_timer: u32,
 }
 
 impl Cpu {
@@ -51,6 +55,7 @@ impl Cpu {
             clock: 0,
             state: CpuState::Running,
             intlevel: true,
+            io_timer: 0,
         }
     }
 
@@ -66,6 +71,33 @@ impl Cpu {
         }
     }
 
+    pub fn inc_io_timer(&mut self) {
+        let timer_control = self.ram[mem::IOREG_TAC];
+        // Do nothing if the timer is stopped
+        if timer_control & 0x04 == 0 { return }
+        let mut time = self.ram[mem::IOREG_TIMA] as u32;
+        let div = match timer_control & 0x03 {
+            0 => 64,
+            1 => 1,
+            2 => 4,
+            3 => 16,
+            _ => 1,
+        };
+        self.io_timer += 1;
+        if self.io_timer >= div {
+            self.io_timer = 0;
+            time += 1;
+            if time > 0xFF {
+                // Reset on overflow, and interrupt
+                self.ram[mem::IOREG_TIMA] = self.ram[mem::IOREG_TMA];
+                self.interrupt(CpuInterrupt::TimerOverflow);
+            } else {
+                // Or increment
+                self.ram[mem::IOREG_TIMA] = time as u8;
+            }
+        }
+    }
+
     pub fn interrupt(&mut self, int: CpuInterrupt) {
         let ie_flag = self.ram[mem::IOREG_IE];
         let (ie_mask, int_addr) = match int {
@@ -73,6 +105,10 @@ impl Cpu {
                 self.ram.write(mem::IOREG_IF, 0x01);
                 (0x01, 0x0040)
             },
+            CpuInterrupt::TimerOverflow => {
+                self.ram.write(mem::IOREG_IF, 0x04);
+                (0x04, 0x0050)
+            }
             _ => {
                 println!("Interrupt not implemented");
                 (0x00, 0x0000)
