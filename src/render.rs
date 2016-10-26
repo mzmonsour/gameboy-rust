@@ -14,8 +14,8 @@ use glium::backend::Facade;
 use glium::texture::MipmapsOption;
 use glium::uniforms::{Sampler, MagnifySamplerFilter, MinifySamplerFilter};
 
-use nalgebra::Mat4;
-use nalgebra::OrthoMat3;
+use cgmath;
+use cgmath::Matrix4;
 
 use mem::MemSection;
 use mem::AddressSpace;
@@ -99,7 +99,7 @@ pub struct GbDisplay {
     sprite_16_idx:          [IndexBuffer<u32>; 4],
     color_prog:             Program,
     tex_prog:               Program,
-    projection:             Mat4<f32>,
+    projection:             Matrix4<f32>,
     ly_counter:             u8,
 }
 
@@ -367,17 +367,7 @@ impl GbDisplay {
         let colorprog = Program::from_source(display, SIMPLE_VERT, COLOR_FRAG, None).unwrap();
         let texprog = Program::from_source(display, SIMPLE_VERT, TEXTURE_FRAG, None).unwrap();
         // Projection matrices
-        let projection = {
-            let orthomat = OrthoMat3::new(LCD_WIDTH as f32, LCD_HEIGHT as f32, 0.0, 1.0);
-            // Reverse y coord, and translate origin to top left
-            let adjust = Mat4::new(
-                1.0f32, 0.0, 0.0, (LCD_WIDTH as f32) / -2.0,
-                0.0, -1.0, 0.0, (LCD_HEIGHT as f32) / 2.0,
-                0.0, 0.0, 1.0, 0.0,
-                0.0, 0.0, 0.0, 1.0
-                );
-            orthomat.to_mat() * adjust
-        };
+        let projection = cgmath::ortho(0.0, LCD_WIDTH as f32, LCD_HEIGHT as f32, 0.0, 0.0, 1.0);
         let vertexbuffer = VertexBuffer::immutable(display, &vertbuf).unwrap();
         // Result
         GbDisplay {
@@ -413,7 +403,7 @@ impl GbDisplay {
             .. Default::default()
         };
         let uniforms = uniform! {
-            projection: self.projection,
+            projection: Into::<[[f32; 4]; 4]>::into(self.projection),
             color: color,
         };
         frame.draw(&self.vertbuf, &self.simple_surface_idx, &self.color_prog, &uniforms, &params);
@@ -482,7 +472,7 @@ impl GbDisplay {
             let tsx = (scroll_x as f32) / (BG_SIZE as f32);
             let tsy = (scroll_y as f32) / (BG_SIZE as f32);
             let uniforms = uniform! {
-                projection: self.projection,
+                projection: Into::<[[f32; 4]; 4]>::into(self.projection),
                 tex_scroll: (tsx, tsy),
                 translate: (0.0f32, 0.0f32),
                 tex: Sampler::new(&bg_tex)
@@ -502,7 +492,7 @@ impl GbDisplay {
             };
             let win_tex = build_tile_tex(display, mem, &opts);
             let uniforms = uniform! {
-                projection: self.projection,
+                projection: Into::<[[f32; 4]; 4]>::into(self.projection),
                 translate: (win_x as f32, win_y as f32),
                 tex: Sampler::new(&win_tex)
                     .magnify_filter(MagnifySamplerFilter::Nearest)
@@ -538,7 +528,7 @@ impl GbDisplay {
         };
         let sprite_idx = &sprite_idx_key[flip_mode as usize];
         let uniforms = uniform! {
-            projection: self.projection,
+            projection: Into::<[[f32; 4]; 4]>::into(self.projection),
             translate: (sprite.xpos as f32 - 8.0, sprite.ypos as f32 - 16.0),
             tex_scroll: (0.0f32, 0.0),
             tex: Sampler::new(&sprite.tex)

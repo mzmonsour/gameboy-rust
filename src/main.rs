@@ -17,7 +17,7 @@ extern crate time;
 extern crate getopts;
 #[macro_use]
 extern crate glium;
-extern crate nalgebra;
+extern crate cgmath;
 
 mod instr;
 mod cpu;
