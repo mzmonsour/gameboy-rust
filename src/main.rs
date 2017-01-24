@@ -68,7 +68,7 @@ impl Ord for ClockInt {
 }
 
 const NS_PER_S: u64 = 1_000_000_000;
-const MS_PER_NS: u64 = 1_000_000;
+const NS_PER_MS: u64 = 1_000_000;
 
 // 10ms
 const BUSY_WAIT_THRESHOLD: u64 = 10_000_000;
@@ -114,7 +114,7 @@ impl Clock {
         };
         let mut curtime = start;
         if target > start && target - start > BUSY_WAIT_THRESHOLD {
-            std::thread::sleep_ms(((target - start) * MS_PER_NS) as u32);
+            std::thread::sleep_ms(((target - start) / NS_PER_MS) as u32);
             return result;
         } else {
             loop {
