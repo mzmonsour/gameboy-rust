@@ -245,10 +245,22 @@ fn main() {
         }
 
         // Redraw screen
+        let pre_clear = precise_time_ns();
         let mut target = display.draw();
         target.clear_color(0.0, 0.0, 0.0, 1.0);
         lcd.clear_viewport(&mut target, viewport, (1.0, 1.0, 1.0, 1.0));
+        let post_clear = precise_time_ns();
+        let clear_time = (post_clear - pre_clear) as f32 / NS_PER_MS as f32;
+        if clear_time > 5.0f32 {
+            println!("clear time: {}ms", clear_time);
+        }
+        let pre_draw = precise_time_ns();
         lcd.draw(&display, &mut target, viewport, cpu.get_ram());
+        let post_draw = precise_time_ns();
+        let draw_time = (post_draw - pre_draw) as f32 / NS_PER_MS as f32;
+        if draw_time > 5.0f32 {
+            println!("lcd.draw time: {}ms", draw_time);
+        }
         match target.finish().err() {
             Some(SwapBuffersError::ContextLost) => {
                 panic!("OpenGL contetxt lost!");
@@ -258,6 +270,12 @@ fn main() {
             },
             None => (),
         }
+        let pre_flush = precise_time_ns();
         display.flush();
+        let post_flush = precise_time_ns();
+        let flush_time = (post_flush - pre_flush) as f32 / NS_PER_MS as f32;
+        if flush_time > 5.0f32 {
+            println!("flush time: {}ms", flush_time);
+        }
     }
 }
