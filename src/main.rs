@@ -258,5 +258,6 @@ fn main() {
             },
             None => (),
         }
+        display.flush();
     }
 }
