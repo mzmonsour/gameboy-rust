@@ -520,11 +520,29 @@ impl GbDisplay {
                 signed_idx: signed_idx,
                 palette: bg_palette,
             };
-            let win_tex = build_tile_tex(display, mem, &opts);
+            let dirty_win = {
+                let observer = mem.get_observer();
+                let data_dirty = if signed_idx {
+                        observer.check_dirty(mem::Region::TileDataSigned)
+                    } else {
+                        observer.check_dirty(mem::Region::TileDataUnsigned)
+                    };
+                let map_dirty = if win_map_addr == 0x9800 {
+                        observer.check_dirty(mem::Region::TileMap0)
+                    } else {
+                        observer.check_dirty(mem::Region::TileMap1)
+                    };
+                map_dirty || data_dirty
+            };
+            if self.last_tile_data_addr != tile_data || self.win_last_map_addr != win_map_addr
+                || dirty_win {
+                println!("Cache miss on Window: dirty_win {}", dirty_win);
+                self.tex_win = build_tile_tex(display, mem, &opts);
+            }
             let uniforms = uniform! {
                 projection: Into::<[[f32; 4]; 4]>::into(self.projection),
                 translate: (win_x as f32, win_y as f32),
-                tex: Sampler::new(&win_tex)
+                tex: Sampler::new(&self.tex_win)
                     .magnify_filter(MagnifySamplerFilter::Nearest)
                     .minify_filter(MinifySamplerFilter::Nearest),
             };
