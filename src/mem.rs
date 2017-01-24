@@ -11,10 +11,99 @@ pub enum MemSection {
     RomBank0,
 }
 
+pub const REGION_TILEDATA_UNSIGNED_BEG: u16 = 0x8000;
+pub const REGION_TILEDATA_UNSIGNED_END: u16 = 0x8FFF;
+pub const REGION_TILEDATA_SIGNED_BEG:   u16 = 0x8800;
+pub const REGION_TILEDATA_SIGNED_END:   u16 = 0x97FF;
+pub const REGION_TILEMAP0_BEG:          u16 = 0x9800;
+pub const REGION_TILEMAP0_END:          u16 = 0x9BFF;
+pub const REGION_TILEMAP1_BEG:          u16 = 0x9C00;
+pub const REGION_TILEMAP1_END:          u16 = 0x9FFF;
+
+pub enum Region {
+    TileDataUnsigned,
+    TileDataSigned,
+    TileMap0,
+    TileMap1,
+}
+
+pub struct WriteObserver {
+    td_signed_dirty:    bool,
+    td_unsigned_dirty:  bool,
+    tmap0_dirty:        bool,
+    tmap1_dirty:        bool,
+}
+
+impl WriteObserver {
+
+    pub fn new() -> WriteObserver {
+        WriteObserver {
+            td_signed_dirty:    true,
+            td_unsigned_dirty:  true,
+            tmap0_dirty:        true,
+            tmap1_dirty:        true,
+        }
+    }
+
+    pub fn record_write(&mut self, addr: u16) {
+        match addr {
+            REGION_TILEDATA_UNSIGNED_BEG...REGION_TILEDATA_UNSIGNED_END => {
+                self.td_unsigned_dirty = true;
+            },
+            REGION_TILEDATA_SIGNED_BEG...REGION_TILEDATA_SIGNED_END => {
+                self.td_signed_dirty = true;
+            },
+            REGION_TILEMAP0_BEG...REGION_TILEMAP0_END => {
+                self.tmap0_dirty = true;
+            },
+            REGION_TILEMAP1_BEG...REGION_TILEMAP1_END => {
+                self.tmap1_dirty = true;
+            },
+            _ => (),
+        }
+    }
+
+    pub fn check_dirty(&self, region: Region) -> bool {
+        match region {
+            Region::TileDataUnsigned => {
+                self.td_unsigned_dirty
+            },
+            Region::TileDataSigned => {
+                self.td_signed_dirty
+            },
+            Region::TileMap0 => {
+                self.tmap0_dirty
+            },
+            Region::TileMap1 => {
+                self.tmap1_dirty
+            },
+        }
+    }
+
+    pub fn clean_region(&mut self, region: Region) {
+        match region {
+            Region::TileDataUnsigned => {
+                self.td_unsigned_dirty = false;
+            },
+            Region::TileDataSigned => {
+                self.td_signed_dirty = false;
+            },
+            Region::TileMap0 => {
+                self.tmap0_dirty = false;
+            },
+            Region::TileMap1 => {
+                self.tmap1_dirty = false;
+            },
+        }
+    }
+
+}
+
 pub struct AddressSpace {
     bios:  [u8; 0x100],
     data: [u8; 0x10000],
     bios_readable: bool,
+    observer: WriteObserver,
 }
 
 pub const IOREG_P1:     u16 = 0xFF00;
@@ -46,6 +135,7 @@ impl AddressSpace {
             bios: [0; 0x100],
             data: [0; 0x10000],
             bios_readable: true,
+            observer: WriteObserver::new(),
         }
     }
 
@@ -110,6 +200,7 @@ impl AddressSpace {
             _ => true,
         };
         if rw {
+            self.observer.record_write(addr);
             self.data[addr as usize] = data;
         }
     }
@@ -136,6 +227,10 @@ impl AddressSpace {
 
     pub fn set_bios_readable(&mut self) {
         self.bios_readable = true;
+    }
+
+    pub fn get_observer(&mut self) -> &mut WriteObserver {
+        &mut self.observer
     }
 
 }
