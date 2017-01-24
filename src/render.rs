@@ -107,6 +107,7 @@ pub struct GbDisplay {
     bg_last_map_addr:       u16,
     win_last_map_addr:      u16,
     last_tile_data_addr:    u16,
+    sprite_cache:           Vec<SpriteData>,
 }
 
 impl GbDisplay {
@@ -375,6 +376,20 @@ impl GbDisplay {
         // Projection matrices
         let projection = cgmath::ortho(0.0, LCD_WIDTH as f32, LCD_HEIGHT as f32, 0.0, 0.0, 1.0);
         let vertexbuffer = VertexBuffer::immutable(display, &vertbuf).unwrap();
+        // Populate sprite cache
+        let mut sprites = Vec::with_capacity(40);
+        for i in 0..40 {
+            sprites.push(SpriteData {
+                priority: 0,
+                order: 0,
+                tex: Texture2d::empty(display, 8, 8).unwrap(),
+                ypos: 0,
+                xpos: 0,
+                yflip: false,
+                xflip: false,
+                tile: 0,
+            });
+        }
         // Result
         GbDisplay {
             vertbuf: vertexbuffer,
@@ -391,6 +406,7 @@ impl GbDisplay {
             bg_last_map_addr: 0,
             win_last_map_addr: 0,
             last_tile_data_addr: 0,
+            sprite_cache: sprites,
         }
     }
 
@@ -450,12 +466,10 @@ impl GbDisplay {
             palette0: sprite_palette0,
             palette1: sprite_palette1,
         };
-        let mut spritelist = if sprite_on {
-            build_sprites(display, mem, &sprite_opts)
-        } else {
-            vec![]
-        };
-        spritelist.sort_by(|a, b| {
+        if sprite_on {
+            build_sprites(display, mem, &sprite_opts, &mut self.sprite_cache);
+        }
+        self.sprite_cache.sort_by(|a, b| {
             let ord = a.xpos.cmp(&b.xpos).reverse();
             if let Ordering::Equal = ord {
                 a.order.cmp(&b.order).reverse()
@@ -465,9 +479,11 @@ impl GbDisplay {
         });
 
         // Draw priority 1 sprites behind BG
-        for sprite in spritelist.iter() {
-            if sprite.priority == 1 {
-                self.draw_sprite(frame, &sprite, &sprite_opts, &params);
+        if sprite_on {
+            for sprite in self.sprite_cache.iter() {
+                if sprite.priority == 1 {
+                    self.draw_sprite(frame, &sprite, &sprite_opts, &params);
+                }
             }
         }
 
@@ -550,9 +566,11 @@ impl GbDisplay {
         }
 
         // Draw priority 0 sprites in front of BG and Window
-        for sprite in spritelist.iter() {
-            if sprite.priority == 0 {
-                self.draw_sprite(frame, &sprite, &sprite_opts, &params);
+        if sprite_on {
+            for sprite in self.sprite_cache.iter() {
+                if sprite.priority == 0 {
+                    self.draw_sprite(frame, &sprite, &sprite_opts, &params);
+                }
             }
         }
 
@@ -566,9 +584,13 @@ impl GbDisplay {
         self.bg_last_map_addr = bg_map_addr;
         self.win_last_map_addr = win_map_addr;
         self.last_tile_data_addr = tile_data;
+        // Restore ordering of sprite cache
+        self.sprite_cache.sort_by(|a, b| {
+            a.order.cmp(&b.order)
+        });
     }
 
-    fn draw_sprite(&mut self, frame: &mut Frame, sprite: &SpriteData, opts: &SpriteOpts, params: &DrawParameters) {
+    fn draw_sprite(&self, frame: &mut Frame, sprite: &SpriteData, opts: &SpriteOpts, params: &DrawParameters) {
         let flip_mode = if sprite.xflip {
             if sprite.yflip {
                 FLIP_X_Y
@@ -692,49 +714,55 @@ struct SpriteData {
     xpos:       u8,
     yflip:      bool,
     xflip:      bool,
+    tile:       u8,
 }
 
 const SPRITE_ATTR_ADDR: u16 = 0xFE00;
 const SPRITE_TILE_ADDR: u16 = 0x8000;
 
-fn build_sprites<F>(display: &F, mem: &AddressSpace, opts: &SpriteOpts) -> Vec<SpriteData> where F: Facade {
-    let mut sprites = Vec::with_capacity(40);
+fn build_sprites<F>(display: &F, mem: &mut AddressSpace, opts: &SpriteOpts, cache: &mut Vec<SpriteData>) where F: Facade {
     let height = opts.height_mode * 8;
+    let dirty_tiles = {
+        let observer = mem.get_observer();
+        observer.check_dirty(mem::Region::TileDataUnsigned)
+    };
     for i in 0..40 {
-        let mut texdata = Vec::with_capacity(height as usize);
-        for _ in 0..height {
-            texdata.push(Vec::with_capacity(8));
-        }
-        let ypos = mem[SPRITE_ATTR_ADDR + i*4];
-        let xpos = mem[SPRITE_ATTR_ADDR + i*4 + 1];
-        let tile = mem[SPRITE_ATTR_ADDR + i*4 + 2] & if opts.height_mode > 1 { 0xFE } else { 0xFF };
-        let flag = mem[SPRITE_ATTR_ADDR + i*4 + 3];
+        let ypos = mem[SPRITE_ATTR_ADDR + i as u16 * 4];
+        let xpos = mem[SPRITE_ATTR_ADDR + i as u16 * 4 + 1];
+        let tile = mem[SPRITE_ATTR_ADDR + i as u16 * 4 + 2] & if opts.height_mode > 1 { 0xFE } else { 0xFF };
+        let flag = mem[SPRITE_ATTR_ADDR + i as u16 * 4 + 3];
         let palette = if ((flag & 0x10) >> 4) == 0 {
             opts.palette0
         } else {
             opts.palette1
         };
         let tile_addr = SPRITE_TILE_ADDR + (tile as u16) * 16;
-        for j in 0..height {
-            let lo = mem[tile_addr + (j as u16)*2];
-            let hi = mem[tile_addr + (j as u16)*2 + 1];
-            for k in (0..8).rev() {
-                let mask = 1 << k;
-                let color = ((lo & mask) >> k) | (((hi & mask) >> k) << 1);
-                texdata[j as usize].push(palette[color as usize]);
+        // TODO: Palette changes should trigger cache misses
+        if dirty_tiles || cache[i].tile != tile {
+            println!("Cache miss on sprite no. {}", i);
+            let mut texdata = Vec::with_capacity(height as usize);
+            for _ in 0..height {
+                texdata.push(Vec::with_capacity(8));
             }
+            for j in 0..height {
+                let lo = mem[tile_addr + (j as u16)*2];
+                let hi = mem[tile_addr + (j as u16)*2 + 1];
+                for k in (0..8).rev() {
+                    let mask = 1 << k;
+                    let color = ((lo & mask) >> k) | (((hi & mask) >> k) << 1);
+                    texdata[j as usize].push(palette[color as usize]);
+                }
+            }
+            cache[i].tex = Texture2d::with_mipmaps(display, texdata, MipmapsOption::NoMipmap).unwrap();
         }
-        sprites.push(SpriteData {
-            priority: (flag & 0x80) >> 7,
-            order: i as u8,
-            tex: Texture2d::with_mipmaps(display, texdata, MipmapsOption::NoMipmap).unwrap(),
-            ypos: ypos,
-            xpos: xpos,
-            yflip: (flag & 0x04) != 0,
-            xflip: (flag & 0x02) != 0,
-        });
+        cache[i].priority = (flag & 0x80) >> 7;
+        cache[i].order = i as u8;
+        cache[i].ypos = ypos;
+        cache[i].xpos = xpos;
+        cache[i].yflip = (flag & 0x04) != 0;
+        cache[i].xflip = (flag & 0x02) != 0;
+        cache[i].tile = tile;
     }
-    sprites
 }
 
 pub fn calculate_viewport(width: u32, height: u32) -> Rect {
