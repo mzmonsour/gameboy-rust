@@ -17,6 +17,7 @@ use glium::uniforms::{Sampler, MagnifySamplerFilter, MinifySamplerFilter};
 use cgmath;
 use cgmath::Matrix4;
 
+use mem;
 use mem::MemSection;
 use mem::AddressSpace;
 
@@ -101,6 +102,11 @@ pub struct GbDisplay {
     tex_prog:               Program,
     projection:             Matrix4<f32>,
     ly_counter:             u8,
+    tex_bg:                 Texture2d,
+    tex_win:                Texture2d,
+    bg_last_map_addr:       u16,
+    win_last_map_addr:      u16,
+    last_tile_data_addr:    u16,
 }
 
 impl GbDisplay {
@@ -380,6 +386,11 @@ impl GbDisplay {
             tex_prog: texprog,
             projection: projection,
             ly_counter: 0,
+            tex_bg: Texture2d::empty(display, 256, 256).unwrap(),
+            tex_win: Texture2d::empty(display, 256, 256).unwrap(),
+            bg_last_map_addr: 0,
+            win_last_map_addr: 0,
+            last_tile_data_addr: 0,
         }
     }
 
@@ -409,7 +420,7 @@ impl GbDisplay {
         frame.draw(&self.vertbuf, &self.simple_surface_idx, &self.color_prog, &uniforms, &params);
     }
 
-    pub fn draw<F>(&mut self, display: &F, frame: &mut Frame, view: Rect, mem: &AddressSpace) where F: Facade {
+    pub fn draw<F>(&mut self, display: &F, frame: &mut Frame, view: Rect, mem: &mut AddressSpace) where F: Facade {
         let lcdc_reg = mem[0xFF40];
         let lcd_on                  = (lcdc_reg & 0x80) != 0;
         let win_map_addr            = if (lcdc_reg & 0x40) == 0 { 0x9800 } else { 0x9C00 };
@@ -468,14 +479,32 @@ impl GbDisplay {
                 signed_idx: signed_idx,
                 palette: bg_palette,
             };
-            let bg_tex = build_tile_tex(display, mem, &opts);
+            let dirty_bg = {
+                let observer = mem.get_observer();
+                let data_dirty = if signed_idx {
+                        observer.check_dirty(mem::Region::TileDataSigned)
+                    } else {
+                        observer.check_dirty(mem::Region::TileDataUnsigned)
+                    };
+                let map_dirty = if bg_map_addr == 0x9800 {
+                        observer.check_dirty(mem::Region::TileMap0)
+                    } else {
+                        observer.check_dirty(mem::Region::TileMap1)
+                    };
+                map_dirty || data_dirty
+            };
+            if self.last_tile_data_addr != tile_data || self.bg_last_map_addr != bg_map_addr
+                || dirty_bg {
+                println!("Cache miss on BG: dirty_bg {}", dirty_bg);
+                self.tex_bg = build_tile_tex(display, mem, &opts);
+            }
             let tsx = (scroll_x as f32) / (BG_SIZE as f32);
             let tsy = (scroll_y as f32) / (BG_SIZE as f32);
             let uniforms = uniform! {
                 projection: Into::<[[f32; 4]; 4]>::into(self.projection),
                 tex_scroll: (tsx, tsy),
                 translate: (0.0f32, 0.0f32),
-                tex: Sampler::new(&bg_tex)
+                tex: Sampler::new(&self.tex_bg)
                     .magnify_filter(MagnifySamplerFilter::Nearest)
                     .minify_filter(MinifySamplerFilter::Nearest),
             };
@@ -484,6 +513,7 @@ impl GbDisplay {
 
         // Draw window
         if win_on {
+            println!("Drawing window...");
             let opts = TileOpts {
                 map_addr: win_map_addr,
                 tile_addr: tile_data,
@@ -507,6 +537,17 @@ impl GbDisplay {
                 self.draw_sprite(frame, &sprite, &sprite_opts, &params);
             }
         }
+
+        // Clear dirty markers on VRAM
+        let observer = mem.get_observer();
+        observer.clean_region(mem::Region::TileDataUnsigned);
+        observer.clean_region(mem::Region::TileDataSigned);
+        observer.clean_region(mem::Region::TileMap0);
+        observer.clean_region(mem::Region::TileMap1);
+        // Cache important VRAM pointers
+        self.bg_last_map_addr = bg_map_addr;
+        self.win_last_map_addr = win_map_addr;
+        self.last_tile_data_addr = tile_data;
     }
 
     fn draw_sprite(&mut self, frame: &mut Frame, sprite: &SpriteData, opts: &SpriteOpts, params: &DrawParameters) {
