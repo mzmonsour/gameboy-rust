@@ -97,6 +97,22 @@ impl WriteObserver {
         }
     }
 
+    /// Applies dirtiness to another WriteObserver, then cleans self
+    pub fn apply(&mut self, other: &mut WriteObserver) {
+        other.td_unsigned_dirty |= self.td_unsigned_dirty;
+        other.td_signed_dirty |= self.td_signed_dirty;
+        other.tmap0_dirty |= self.tmap0_dirty;
+        other.tmap1_dirty |= self.tmap1_dirty;
+        self.clean_all();
+    }
+
+    pub fn clean_all(&mut self) {
+        self.td_unsigned_dirty = false;
+        self.td_signed_dirty = false;
+        self.tmap0_dirty = false;
+        self.tmap1_dirty = false;
+    }
+
 }
 
 pub struct RwMemory {
