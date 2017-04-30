@@ -19,7 +19,7 @@ use cgmath::Matrix4;
 
 use mem;
 use mem::MemSection;
-use mem::AddressSpace;
+use mem::{RwMemory, WriteObserver};
 
 pub const LCD_WIDTH: u32    = 160;
 pub const LCD_HEIGHT: u32   = 144;
@@ -436,7 +436,9 @@ impl GbDisplay {
         frame.draw(&self.vertbuf, &self.simple_surface_idx, &self.color_prog, &uniforms, &params);
     }
 
-    pub fn draw<F>(&mut self, display: &F, frame: &mut Frame, view: Rect, mem: &mut AddressSpace) where F: Facade {
+    pub fn draw<F>(&mut self, display: &F, frame: &mut Frame, view: Rect, mem: &RwMemory, observer: &mut WriteObserver)
+        where F: Facade
+    {
         let lcdc_reg = mem[0xFF40];
         let lcd_on                  = (lcdc_reg & 0x80) != 0;
         let win_map_addr            = if (lcdc_reg & 0x40) == 0 { 0x9800 } else { 0x9C00 };
@@ -467,7 +469,7 @@ impl GbDisplay {
             palette1: sprite_palette1,
         };
         if sprite_on {
-            build_sprites(display, mem, &sprite_opts, &mut self.sprite_cache);
+            build_sprites(display, mem, observer, &sprite_opts, &mut self.sprite_cache);
         }
         self.sprite_cache.sort_by(|a, b| {
             let ord = a.xpos.cmp(&b.xpos).reverse();
@@ -496,7 +498,6 @@ impl GbDisplay {
                 palette: bg_palette,
             };
             let dirty_bg = {
-                let observer = mem.get_observer();
                 let data_dirty = if signed_idx {
                         observer.check_dirty(mem::Region::TileDataSigned)
                     } else {
@@ -537,7 +538,6 @@ impl GbDisplay {
                 palette: bg_palette,
             };
             let dirty_win = {
-                let observer = mem.get_observer();
                 let data_dirty = if signed_idx {
                         observer.check_dirty(mem::Region::TileDataSigned)
                     } else {
@@ -575,7 +575,6 @@ impl GbDisplay {
         }
 
         // Clear dirty markers on VRAM
-        let observer = mem.get_observer();
         observer.clean_region(mem::Region::TileDataUnsigned);
         observer.clean_region(mem::Region::TileDataSigned);
         observer.clean_region(mem::Region::TileMap0);
@@ -670,7 +669,7 @@ struct TileOpts {
     palette: [(f32, f32, f32, f32); 4],
 }
 
-fn build_tile_tex<F>(display: &F, mem: &AddressSpace, opts: &TileOpts) -> Texture2d where F: Facade {
+fn build_tile_tex<F>(display: &F, mem: &RwMemory, opts: &TileOpts) -> Texture2d where F: Facade {
     // Data layout: data[y][x], origin top left
     let mut data: Vec<Vec<(f32, f32, f32, f32)>> = Vec::with_capacity(256);
     for i in 0..256 {
@@ -720,10 +719,9 @@ struct SpriteData {
 const SPRITE_ATTR_ADDR: u16 = 0xFE00;
 const SPRITE_TILE_ADDR: u16 = 0x8000;
 
-fn build_sprites<F>(display: &F, mem: &mut AddressSpace, opts: &SpriteOpts, cache: &mut Vec<SpriteData>) where F: Facade {
+fn build_sprites<F>(display: &F, mem: &RwMemory, observer: &mut WriteObserver, opts: &SpriteOpts, cache: &mut Vec<SpriteData>) where F: Facade {
     let height = opts.height_mode * 8;
     let dirty_tiles = {
-        let observer = mem.get_observer();
         observer.check_dirty(mem::Region::TileDataUnsigned)
     };
     for i in 0..40 {

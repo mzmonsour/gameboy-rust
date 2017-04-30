@@ -90,11 +90,11 @@ impl Cpu {
             if time > 0xFF {
                 // Reset on overflow, and interrupt
                 let tma = self.ram[mem::IOREG_TMA];
-                self.ram.write(mem::IOREG_TIMA, tma);
+                self.ram.sys_write(mem::IOREG_TIMA, tma);
                 self.interrupt(CpuInterrupt::TimerOverflow);
             } else {
                 // Or increment
-                self.ram.write(mem::IOREG_TIMA, time as u8);
+                self.ram.sys_write(mem::IOREG_TIMA, time as u8);
             }
         }
     }

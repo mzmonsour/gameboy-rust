@@ -121,13 +121,13 @@ pub struct RwMemory {
 
 impl RwMemory {
 
-    fn new() -> RwMemory {
+    pub fn new() -> RwMemory {
         RwMemory {
             data: [0; 0x10000],
         }
     }
 
-    fn copy_to(&self, other: &mut RwMemory) {
+    pub fn copy_to(&self, other: &mut RwMemory) {
         other.data.copy_from_slice(&self.data);
     }
 }
@@ -299,6 +299,17 @@ impl AddressSpace {
         } = *self;
         main_ram.copy_to(backup_ram);
         mem
+    }
+
+    pub fn verify_backup(&self) -> bool {
+        let mut i = 0;
+        while i < self.main_ram.data.len() {
+            if self.main_ram.data[i] != self.backup_ram.data[i] {
+                return false;
+            }
+            i += 1;
+        }
+        return true;
     }
 
 }

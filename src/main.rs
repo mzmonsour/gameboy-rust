@@ -5,6 +5,9 @@ use time::precise_time_ns;
 use std::fs::File;
 use std::cmp::Ordering;
 use std::collections::BinaryHeap;
+use std::thread;
+use std::sync::mpsc;
+use std::sync::mpsc::TryRecvError;
 
 use glium::DisplayBuild;
 use glium::Surface;
@@ -12,6 +15,8 @@ use glium::SwapBuffersError;
 use glium::glutin::Api;
 use glium::glutin::GlRequest;
 use glium::glutin::Event;
+
+use mem::{RwMemory, WriteObserver};
 
 extern crate time;
 extern crate getopts;
@@ -128,6 +133,11 @@ impl Clock {
 
 }
 
+pub enum WorkerCmd {
+    TakeSnapshot(Box<RwMemory>, WriteObserver),
+    Shutdown,
+}
+
 fn main() {
     //  Gather command line args
     let args: Vec<String> = std::env::args().collect();
@@ -188,11 +198,84 @@ fn main() {
         render::calculate_viewport(width, height)
     };
 
-    // Initialize virtual hardware clocks
-    let mut clock = Clock::new(cpu::GB_FREQUENCY);
-    clock.set_interrupt(IntType::Vblank, render::VBLANK_PERIOD);
-    clock.set_interrupt(IntType::Hblank, render::HBLANK_PERIOD);
-    clock.set_interrupt(IntType::IoTimer, cpu::TIMER_BASE_PERIOD_NS);
+    let (io_tx, sim_rx) = mpsc::channel();
+    let (sim_tx, io_rx) = mpsc::channel();
+    let sim_worker = thread::Builder::new()
+        .name("simulation worker".to_string())
+        .spawn(move || {
+
+        // Initialize virtual hardware clocks
+        let mut clock = Clock::new(cpu::GB_FREQUENCY);
+        clock.set_interrupt(IntType::Vblank, render::VBLANK_PERIOD);
+        clock.set_interrupt(IntType::Hblank, render::HBLANK_PERIOD);
+        clock.set_interrupt(IntType::IoTimer, cpu::TIMER_BASE_PERIOD_NS);
+
+        // TODO: Abstract LCD simulation better
+        // Track ly here
+        let mut ly = 0;
+
+        'main: loop {
+            // Simulate CPU and hardware timers
+            'sim: loop  {
+                if let Some(int) = clock.wait_cycles(cpu.do_instr()) {
+                    // Handle timer interrupt
+                    match int {
+                        // Interrupt at the start of the vblank period
+                        IntType::Vblank => {
+                            clock.set_interrupt(IntType::Vblank, render::VBLANK_PERIOD);
+                            cpu.interrupt(CpuInterrupt::Vblank);
+                            ly = 144; // set_ly_vblank
+                            let ram = cpu.get_ram();
+                            ram.sys_write(mem::IOREG_LY, ly);
+                        }
+                        // ~10 H-Blanks occur after the V-Blank starts
+                        IntType::Hblank => {
+                            clock.set_interrupt(IntType::Hblank, render::HBLANK_PERIOD);
+                            // inc_ly_counter
+                            if ly >= 153 {
+                                ly = 0;
+                            } else {
+                                ly += 1
+                            }
+                            let ram = cpu.get_ram();
+                            ram.sys_write(mem::IOREG_LY, ly);
+                            // At the end, collect data from VRAM and render it
+                            if ly == 0 {
+                                break 'sim;
+                            }
+                        }
+                        // Do timer computations
+                        IntType::IoTimer => {
+                            clock.set_interrupt(IntType::IoTimer, cpu::TIMER_BASE_PERIOD_NS);
+                            cpu.inc_io_timer();
+                        }
+                    }
+                }
+            }
+
+            // Check commands from master
+            match sim_rx.try_recv() {
+                Ok(WorkerCmd::TakeSnapshot(oldsnap, mut observer)) => {
+                    let ram = cpu.get_ram();
+                    let newsnap = ram.swap_backup(oldsnap);
+                    ram.get_observer().apply(&mut observer);
+                    sim_tx.send((newsnap, observer));
+                    if !ram.verify_backup() {
+                        println!("Backup verify failed!")
+                    }
+                },
+                Ok(WorkerCmd::Shutdown) => break 'main,
+                Err(TryRecvError::Empty) => (),
+                Err(TryRecvError::Disconnected) => {
+                    panic!("I/O thread disconnected without notifying");
+                }
+            }
+        }
+    });
+
+    // Create a memory snapshot, and write observer
+    let mut oldsnap = Some(Box::new(RwMemory::new()));
+    let mut oldobserver = Some(WriteObserver::new());
 
     // Simulate CPU
     'main: loop {
@@ -211,38 +294,12 @@ fn main() {
             }
         }
 
-        // Simulate CPU and hardware timers
-        'sim: loop  {
-            if let Some(int) = clock.wait_cycles(cpu.do_instr()) {
-                // Handle timer interrupt
-                match int {
-                    // Interrupt at the start of the vblank period
-                    IntType::Vblank => {
-                        clock.set_interrupt(IntType::Vblank, render::VBLANK_PERIOD);
-                        cpu.interrupt(CpuInterrupt::Vblank);
-                        let ly = lcd.set_ly_vblank();
-                        let ram = cpu.get_ram();
-                        ram.write(mem::IOREG_LY, ly);
-                    }
-                    // ~10 H-Blanks occur after the V-Blank starts
-                    IntType::Hblank => {
-                        clock.set_interrupt(IntType::Hblank, render::HBLANK_PERIOD);
-                        let ly = lcd.inc_ly_counter();
-                        let ram = cpu.get_ram();
-                        ram.write(mem::IOREG_LY, ly);
-                        // At the end, collect data from VRAM and render it
-                        if ly == 0 {
-                            break 'sim;
-                        }
-                    }
-                    // Do timer computations
-                    IntType::IoTimer => {
-                        clock.set_interrupt(IntType::IoTimer, cpu::TIMER_BASE_PERIOD_NS);
-                        cpu.inc_io_timer();
-                    }
-                }
-            }
-        }
+        // Request memory snapshot from simulation
+        io_tx.send(WorkerCmd::TakeSnapshot(oldsnap.take().unwrap(), oldobserver.take().unwrap()));
+        let (snapshot, mut observer) = match io_rx.recv() {
+            Ok(v) => v,
+            Err(_) => panic!("Did not receive snapshot from simulation thread"),
+        };
 
         // Redraw screen
         let pre_clear = precise_time_ns();
@@ -255,7 +312,7 @@ fn main() {
             println!("clear time: {}ms", clear_time);
         }
         let pre_draw = precise_time_ns();
-        lcd.draw(&display, &mut target, viewport, cpu.get_ram());
+        lcd.draw(&display, &mut target, viewport, &snapshot, &mut observer);
         let post_draw = precise_time_ns();
         let draw_time = (post_draw - pre_draw) as f32 / NS_PER_MS as f32;
         if draw_time > 5.0f32 {
@@ -277,5 +334,11 @@ fn main() {
         if flush_time > 5.0f32 {
             println!("flush time: {}ms", flush_time);
         }
+
+        oldsnap = Some(snapshot);
+        oldobserver = Some(observer);
     }
+
+    // Shutdown sim thread
+    io_tx.send(WorkerCmd::Shutdown);
 }
