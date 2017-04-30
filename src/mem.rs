@@ -251,9 +251,7 @@ impl AddressSpace {
             _ => true,
         };
         if rw {
-            self.observer.record_write(addr);
-            self.main_ram[addr] = data;
-            self.backup_ram[addr] = data;
+            self.sys_write(addr, data);
         }
     }
 
@@ -262,6 +260,13 @@ impl AddressSpace {
         let hi = ((data & 0xFF00) >> 8) as u8;
         self.write(addr, lo);
         self.write(addr + 1, hi);
+    }
+
+    /// System write, bypasses read-only flag
+    pub fn sys_write(&mut self, addr: u16, data: u8) {
+        self.observer.record_write(addr);
+        self.main_ram[addr] = data;
+        self.backup_ram[addr] = data;
     }
 
     pub fn load_bios(&mut self, bios: &mut File) -> ::std::io::Result<()> {
