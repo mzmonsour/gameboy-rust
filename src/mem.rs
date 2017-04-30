@@ -99,11 +99,44 @@ impl WriteObserver {
 
 }
 
-pub struct AddressSpace {
-    bios:  [u8; 0x100],
+pub struct RwMemory {
     data: [u8; 0x10000],
-    bios_readable: bool,
-    observer: WriteObserver,
+}
+
+impl RwMemory {
+
+    fn new() -> RwMemory {
+        RwMemory {
+            data: [0; 0x10000],
+        }
+    }
+
+    fn copy_to(&self, other: &mut RwMemory) {
+        other.data.copy_from_slice(&self.data);
+    }
+}
+
+impl Index<u16> for RwMemory {
+    type Output = u8;
+
+    fn index(&self, idx: u16) -> &u8 {
+        &self.data[idx as usize]
+    }
+}
+
+impl IndexMut<u16> for RwMemory {
+    fn index_mut(&mut self, idx: u16) -> &mut u8 {
+        &mut self.data[idx as usize]
+    }
+}
+
+// TODO: Separate ROM from RwMemory
+pub struct AddressSpace {
+    bios:           [u8; 0x100],
+    main_ram:       RwMemory,
+    backup_ram:     Box<RwMemory>,
+    bios_readable:  bool,
+    observer:       WriteObserver,
 }
 
 pub const IOREG_P1:     u16 = 0xFF00;
@@ -133,7 +166,8 @@ impl AddressSpace {
     pub fn new() -> AddressSpace {
         AddressSpace {
             bios: [0; 0x100],
-            data: [0; 0x10000],
+            main_ram: RwMemory::new(),
+            backup_ram: Box::new(RwMemory::new()),
             bios_readable: true,
             observer: WriteObserver::new(),
         }
@@ -143,7 +177,7 @@ impl AddressSpace {
         if addr < 0x100 && self.bios_readable {
             self.bios[addr as usize]
         } else {
-            self.data[addr as usize]
+            self.main_ram[addr]
         }
     }
 
@@ -154,7 +188,7 @@ impl AddressSpace {
     }
 
     pub fn read_slice(&self, addr: u16, bytes: u16) -> &[u8] {
-        &self.data[addr as usize .. (addr + bytes) as usize]
+        &self.main_ram.data[addr as usize .. (addr + bytes) as usize]
     }
 
     pub fn write(&mut self, addr: u16, data: u8) {
@@ -185,7 +219,8 @@ impl AddressSpace {
                 let to_addr = 0xFE00;
                 let from_addr = (data as u16) << 8;
                 for i in 0x000..0x100 {
-                    self.data[to_addr as usize + i] = self.data[from_addr as usize + i];
+                    self.main_ram[to_addr + i] = self.main_ram[from_addr + i];
+                    self.backup_ram[to_addr + i] = self.main_ram[from_addr + i];
                 }
                 true
             },
@@ -201,7 +236,8 @@ impl AddressSpace {
         };
         if rw {
             self.observer.record_write(addr);
-            self.data[addr as usize] = data;
+            self.main_ram[addr] = data;
+            self.backup_ram[addr] = data;
         }
     }
 
@@ -219,9 +255,9 @@ impl AddressSpace {
 
     pub fn load_rom(&mut self, rom: &mut File) -> ::std::io::Result<()> {
         // Read in header first
-        try!(rom.read(&mut self.data[0x000..0x150]));
+        try!(rom.read(&mut self.main_ram.data[0x000..0x150]));
         // Then read in remaining cart data
-        try!(rom.read(&mut self.data[0x0150..0x8000]));
+        try!(rom.read(&mut self.main_ram.data[0x0150..0x8000]));
         Ok(())
     }
 
@@ -233,19 +269,24 @@ impl AddressSpace {
         &mut self.observer
     }
 
+    pub fn swap_backup(&mut self, mut mem: Box<RwMemory>) -> Box<RwMemory> {
+        ::std::mem::swap(&mut mem, &mut self.backup_ram);
+        let AddressSpace {
+            ref mut main_ram,
+            ref mut backup_ram,
+            ..
+        } = *self;
+        main_ram.copy_to(backup_ram);
+        mem
+    }
+
 }
 
 impl Index<u16> for AddressSpace {
     type Output = u8;
 
     fn index(&self, idx: u16) -> &u8 {
-        &self.data[idx as usize]
-    }
-}
-
-impl IndexMut<u16> for AddressSpace {
-    fn index_mut(&mut self, idx: u16) -> &mut u8 {
-        &mut self.data[idx as usize]
+        &self.main_ram[idx]
     }
 }
 

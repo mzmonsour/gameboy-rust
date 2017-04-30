@@ -222,14 +222,14 @@ fn main() {
                         cpu.interrupt(CpuInterrupt::Vblank);
                         let ly = lcd.set_ly_vblank();
                         let ram = cpu.get_ram();
-                        ram[mem::IOREG_LY] = ly;
+                        ram.write(mem::IOREG_LY, ly);
                     }
                     // ~10 H-Blanks occur after the V-Blank starts
                     IntType::Hblank => {
                         clock.set_interrupt(IntType::Hblank, render::HBLANK_PERIOD);
                         let ly = lcd.inc_ly_counter();
                         let ram = cpu.get_ram();
-                        ram[mem::IOREG_LY] = ly;
+                        ram.write(mem::IOREG_LY, ly);
                         // At the end, collect data from VRAM and render it
                         if ly == 0 {
                             break 'sim;
